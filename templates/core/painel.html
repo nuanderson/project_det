@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h4">{{ filial }} · {{ mes|stringformat:"02d" }}/{{ ano }}</h1>
+
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>Situação do mês:
+      <span class="badge {% if fechamento.situacao == 'PENDENTE' %}text-bg-danger{% elif fechamento.situacao == 'JUSTIFICADO' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ fechamento.get_situacao_display }}</span>
+    </div>
+    <div>
+      <a class="btn btn-primary btn-sm" href="{% url 'notificacao_criar' %}">Registrar notificação</a>
+      {% if fechamento.situacao == 'PENDENTE' or fechamento.situacao == 'JUSTIFICADO' %}
+      <form method="post" action="{% url 'declarar_sem' filial.pk ano mes %}" class="d-inline">{% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'painel' %}?ano={{ ano }}&mes={{ mes }}">
+        <button class="btn btn-outline-secondary btn-sm">Sem notificações neste mês</button>
+      </form>
+      {% elif fechamento.situacao == 'SEM_NOTIFICACOES' %}
+      <form method="post" action="{% url 'desfazer_declaracao' filial.pk ano mes %}" class="d-inline">{% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'painel' %}?ano={{ ano }}&mes={{ mes }}">
+        <button class="btn btn-outline-secondary btn-sm">Desfazer declaração</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div></div>
+
+{% if vencidas %}
+<div class="alert alert-danger">Você tem {{ vencidas.count }} notificação(ões) com prazo vencido.</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card shadow-sm"><div class="card-header">Notificações do mês</div>
+      <ul class="list-group list-group-flush">
+      {% for n in do_mes %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ n.numero_det }} — {{ n.assunto }}</span><span class="text-muted">{{ n.status_exibicao }}</span>
+        </li>
+      {% empty %}
+        <li class="list-group-item text-muted">Nenhuma notificação registrada neste mês.</li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm"><div class="card-header">Justificar não envio</div><div class="card-body">
+      <form method="post" action="{% url 'justificar' filial.pk ano mes %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'painel' %}?ano={{ ano }}&mes={{ mes }}">
+        {{ form_justificativa.texto }}
+        <button class="btn btn-warning btn-sm mt-2">Registrar justificativa</button>
+      </form>
+      {% for j in justificativas %}
+        <hr><small class="text-muted">{{ j.criado_em|date:"d/m/Y H:i" }} · {{ j.autor }}</small><p class="mb-0">{{ j.texto }}</p>
+      {% endfor %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}

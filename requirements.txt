@@ -1,0 +1,9 @@
+Django>=5.2,<6
+openpyxl>=3.1
+waitress>=3.0
+whitenoise>=6.6
+reportlab>=4.0
+# Desenvolvimento / testes
+pytest>=8
+pytest-django>=4.8
+# Para PostgreSQL em produção: psycopg[binary]>=3.1

@@ -1,0 +1,30 @@
+/* Paleta extraída da logo do ISAC */
+:root {
+  --isac-azul: #005aa9;
+  --isac-azul-claro: #0092d5;
+  --isac-cinza: #606062;
+  --bs-primary: #005aa9;
+  --bs-primary-rgb: 0, 90, 169;
+  --bs-link-color: #005aa9;
+  --bs-link-hover-color: #004683;
+  --bs-body-color: #3d3d3f;
+}
+body { background: #f3f7fb; }
+.navbar-isac { background: #fff; border-bottom: 3px solid var(--isac-azul); }
+.navbar-isac .navbar-brand img { height: 42px; }
+.navbar-isac .nav-link { color: var(--isac-cinza); font-weight: 500; }
+.navbar-isac .nav-link:hover { color: var(--isac-azul); }
+.navbar-isac .navbar-text { color: var(--isac-cinza); }
+.btn-primary { --bs-btn-bg: #005aa9; --bs-btn-border-color: #005aa9; --bs-btn-hover-bg: #004683; --bs-btn-hover-border-color: #004683; --bs-btn-active-bg: #003f75; --bs-btn-active-border-color: #003f75; }
+.btn-outline-primary { --bs-btn-color: #005aa9; --bs-btn-border-color: #005aa9; --bs-btn-hover-bg: #005aa9; --bs-btn-hover-border-color: #005aa9; }
+.btn-outline-isac { --bs-btn-color: var(--isac-cinza); --bs-btn-border-color: #c9d3dd; --bs-btn-hover-bg: var(--isac-azul); --bs-btn-hover-border-color: var(--isac-azul); --bs-btn-hover-color: #fff; }
+.card { border: 0; }
+.card-header { background: #fff; color: var(--isac-azul); font-weight: 600; border-bottom: 1px solid #e3ebf3; }
+.table > thead { --bs-table-bg: #eaf2fa; color: var(--isac-azul); }
+h1, .h4 { color: var(--isac-azul); }
+.form-control, .form-select { border-color: #c9d3dd; }
+.form-control:focus, .form-select:focus { border-color: var(--isac-azul-claro); box-shadow: 0 0 0 .2rem rgba(0, 146, 213, .2); }
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=date], select, textarea { display: block; width: 100%; padding: .375rem .75rem; border: 1px solid #c9d3dd; border-radius: .375rem; }
+.login-logo { max-width: 280px; }
+.stat-card .fs-2, .stat-card .fs-4 { color: var(--isac-azul); font-weight: 600; }
+.stat-card.alerta { border-left: 4px solid #dc3545; }

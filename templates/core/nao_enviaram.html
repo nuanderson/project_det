@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Situação das filiais · {{ mes|stringformat:"02d" }}/{{ ano }}</h1>
+  <form method="get" class="d-flex gap-2">
+    <select name="mes" class="form-select form-select-sm">{% for n, nome in meses %}<option value="{{ n }}" {% if n == mes %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select>
+    <input name="ano" type="number" value="{{ ano }}" class="form-control form-control-sm" style="width:6rem">
+    <button class="btn btn-secondary btn-sm">Aplicar</button>
+  </form>
+</div>
+{% for l in linhas %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between">
+    <strong>{{ l.filial }}</strong>
+    <span class="badge {% if l.situacao == 'PENDENTE' %}text-bg-danger{% elif l.situacao == 'JUSTIFICADO' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ l.situacao }}</span>
+  </div>
+  {% if l.situacao == 'PENDENTE' or l.situacao == 'JUSTIFICADO' %}
+  <div class="card-body">
+    {% for j in l.fechamento.justificativas.all %}
+      <p class="mb-1"><small class="text-muted">{{ j.criado_em|date:"d/m/Y H:i" }} · {{ j.autor }}</small><br>{{ j.texto }}</p>
+    {% empty %}
+      <p class="text-muted">Sem justificativa registrada.</p>
+    {% endfor %}
+    <form method="post" action="{% url 'justificar' l.filial.pk ano mes %}" class="mt-2">{% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'nao_enviaram' %}?ano={{ ano }}&mes={{ mes }}">
+      {{ form_justificativa.texto }}
+      <button class="btn btn-warning btn-sm mt-2">Registrar justificativa</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% empty %}
+<p class="text-muted">Nenhuma filial ativa cadastrada.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h1 class="h4">Usuários</h1><a class="btn btn-primary btn-sm" href="{% url 'usuario_criar' %}">Novo usuário</a></div>
+<div class="card shadow-sm"><table class="table mb-0">
+  <thead><tr><th>Usuário</th><th>Perfil</th><th>Filial</th><th>Ativo</th></tr></thead>
+  <tbody>{% for u in usuarios %}
+    <tr><td>{{ u.username }}</td><td>{{ u.get_perfil_display }}</td><td>{{ u.filial|default:"-" }}</td><td>{{ u.is_active|yesno:"Sim,Não" }}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% endblock %}

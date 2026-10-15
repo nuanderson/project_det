@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Dashboard</h1>
+  <form method="get" class="d-flex gap-2">
+    <select name="mes" class="form-select form-select-sm">
+      {% for n, nome in meses %}<option value="{{ n }}" {% if n == mes %}selected{% endif %}>{{ nome }}</option>{% endfor %}
+    </select>
+    <select name="ano" class="form-select form-select-sm">
+      {% for a in anos %}<option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-secondary btn-sm">Aplicar</button>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_dashboard' 'xlsx' %}?ano={{ ano }}&mes={{ mes }}">Excel</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_dashboard' 'pdf' %}?ano={{ ano }}&mes={{ mes }}">PDF</a>
+  </form>
+</div>
+
+<div class="row g-3 mb-4 text-center">
+  <div class="col-6 col-md-3"><div class="card shadow-sm stat-card"><div class="card-body"><div class="fs-2">{{ resumo.total_ano }}</div><small>No ano</small></div></div></div>
+  <div class="col-6 col-md-3"><div class="card shadow-sm stat-card"><div class="card-body"><div class="fs-2">{{ resumo.total_mes }}</div><small>No mês</small></div></div></div>
+  <div class="col-6 col-md-3"><div class="card shadow-sm stat-card alerta"><div class="card-body"><div class="fs-2 text-danger">{{ resumo.vencidas }}</div><small>Vencidas</small></div></div></div>
+  <div class="col-6 col-md-3"><div class="card shadow-sm stat-card"><div class="card-body"><div class="fs-2">{{ resumo.prazo_7_dias }}</div><small>Prazo em 7 dias</small></div></div></div>
+  <div class="col-4"><div class="card shadow-sm stat-card"><div class="card-body"><div class="fs-4">{{ resumo.pendentes }}</div><small>Pendentes</small></div></div></div>
+  <div class="col-4"><div class="card shadow-sm stat-card"><div class="card-body"><div class="fs-4">{{ resumo.em_andamento }}</div><small>Em andamento</small></div></div></div>
+  <div class="col-4"><div class="card shadow-sm stat-card"><div class="card-body"><div class="fs-4">{{ resumo.respondidas }}</div><small>Respondidas</small></div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-8"><div class="card shadow-sm"><div class="card-header">Notificações por mês em {{ ano }}</div><div class="card-body"><canvas id="serie" height="110"></canvas></div></div></div>
+  <div class="col-lg-4"><div class="card shadow-sm"><div class="card-header">Conformidade em {{ mes|stringformat:"02d" }}/{{ ano }}</div><div class="card-body"><canvas id="conf"></canvas></div></div></div>
+</div>
+
+<div class="card shadow-sm"><div class="card-header">Por filial</div><div class="table-responsive">
+<table class="table mb-0">
+  <thead><tr><th>Filial</th><th class="text-end">Ano</th><th class="text-end">Mês</th><th class="text-end">Vencidas</th><th>Situação no mês</th></tr></thead>
+  <tbody>
+  {% for f in filiais %}
+    <tr><td>{{ f.filial }}</td><td class="text-end">{{ f.total_ano }}</td><td class="text-end">{{ f.total_mes }}</td><td class="text-end">{{ f.vencidas }}</td>
+      <td><span class="badge {% if f.situacao == 'PENDENTE' %}text-bg-danger{% elif f.situacao == 'JUSTIFICADO' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ f.situacao_rotulo }}</span></td></tr>
+  {% empty %}
+    <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma filial cadastrada.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+
+{{ serie|json_script:"dados-serie" }}
+{{ conformidade|json_script:"dados-conf" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const serie = JSON.parse(document.getElementById("dados-serie").textContent);
+  new Chart(document.getElementById("serie"), {
+    type: "bar",
+    data: { labels: serie.map(s => s.mes), datasets: [{ label: "Notificações", data: serie.map(s => s.total), backgroundColor: "#005aa9" }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+  const conf = JSON.parse(document.getElementById("dados-conf").textContent);
+  new Chart(document.getElementById("conf"), {
+    type: "doughnut",
+    data: {
+      labels: ["Com notificações", "Sem notificações", "Justificado", "Pendente"],
+      datasets: [{ data: [conf.COM_NOTIFICACOES, conf.SEM_NOTIFICACOES, conf.JUSTIFICADO, conf.PENDENTE],
+                   backgroundColor: ["#005aa9", "#0092d5", "#f0ad4e", "#dc3545"] }]
+    }
+  });
+</script>
+{% endblock %}

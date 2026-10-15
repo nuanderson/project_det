@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-5">
+  <div class="text-center mb-4"><img class="login-logo img-fluid" src="{% static 'img/logo_isac.png' %}" alt="ISAC - Instituto Saúde e Cidadania"></div>
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <h1 class="h5 mb-1">Controle de notificações do DET</h1>
+    <p class="text-muted small">Entre com seu usuário e senha.</p>
+    <form method="post">{% csrf_token %}
+      {{ form.as_p }}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn-primary w-100">Entrar</button>
+    </form>
+  </div></div>
+</div></div>
+{% endblock %}

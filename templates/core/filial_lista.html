@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h1 class="h4">Filiais</h1><a class="btn btn-primary btn-sm" href="{% url 'filial_nova' %}">Nova filial</a></div>
+<div class="card shadow-sm"><table class="table mb-0">
+  <thead><tr><th>Nome</th><th>CNPJ</th><th>Cidade/UF</th><th>Ativa</th><th></th></tr></thead>
+  <tbody>{% for f in filiais %}
+    <tr><td>{{ f.nome }}</td><td>{{ f.cnpj }}</td><td>{{ f.cidade }}/{{ f.uf }}</td><td>{{ f.ativa|yesno:"Sim,Não" }}</td>
+      <td><a href="{% url 'filial_editar' f.pk %}">Editar</a></td></tr>
+  {% empty %}<tr><td colspan="5" class="text-muted text-center py-3">Nenhuma filial.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

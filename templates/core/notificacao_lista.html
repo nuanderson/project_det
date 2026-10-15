@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Notificações</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'xlsx' %}?{{ querystring }}">Excel</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'pdf' %}?{{ querystring }}">PDF</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'notificacao_criar' %}">Nova notificação</a>
+  </div>
+</div>
+<form method="get" class="row g-2 mb-3">
+  {% if user.is_matriz %}<div class="col-md-3">{{ filtro.filial }}</div>{% endif %}
+  <div class="col-md-2">{{ filtro.ano }}</div>
+  <div class="col-md-2">{{ filtro.mes }}</div>
+  <div class="col-md-3">{{ filtro.status }}</div>
+  <div class="col-md-2"><button class="btn btn-secondary w-100">Filtrar</button></div>
+</form>
+<div class="card shadow-sm"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>Filial</th><th>Nº DET</th><th>Assunto</th><th>Recebimento</th><th>Prazo</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for n in notificacoes %}
+    <tr>
+      <td>{{ n.filial }}</td><td>{{ n.numero_det }}</td><td>{{ n.assunto }}</td>
+      <td>{{ n.data_recebimento|date:"d/m/Y" }}</td><td>{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</td>
+      <td><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></td>
+      <td class="text-end">
+        {% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Anexo</a> ·{% endif %}
+        <a href="{% url 'notificacao_editar' n.pk %}">Editar</a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma notificação encontrada.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}
