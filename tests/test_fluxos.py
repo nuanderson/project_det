@@ -134,3 +134,78 @@ def test_alerta_de_prazo_e_vencidas(matriz, user_a, filial_a, criar_notificacao,
     assert any("vencidas" in a for a in assuntos)
     prazo = next(m for m in mail.outbox if "prazo" in m.subject)
     assert "P2" in prazo.body and "V1" not in prazo.body
+
+
+# ---------- matriz: status e avisos ----------
+
+def test_matriz_nao_edita_nem_exclui_notificacao_da_filial(client, matriz, user_a, filial_a, criar_notificacao):
+    n = criar_notificacao(filial_a, user_a, numero="A1")
+    client.force_login(matriz)
+    assert client.get(reverse("notificacao_editar", args=[n.pk])).status_code == 403
+    assert client.post(reverse("notificacao_editar", args=[n.pk]), _dados_form(numero_det="ALTERADO")).status_code == 403
+    assert client.post(reverse("notificacao_excluir", args=[n.pk])).status_code == 403
+    n.refresh_from_db()
+    assert n.numero_det == "A1"
+
+
+def test_matriz_muda_so_o_status(client, matriz, user_a, filial_a, criar_notificacao):
+    n = criar_notificacao(filial_a, user_a, numero="A1")
+    client.force_login(matriz)
+    resp = client.post(reverse("notificacao_status", args=[n.pk]), {"status": "RESPONDIDA"})
+    assert resp.status_code == 302
+    n.refresh_from_db()
+    assert n.status == "RESPONDIDA" and n.numero_det == "A1" and n.assunto == "Assunto"
+    assert LogAuditoria.objects.filter(acao="mudar_status", detalhe__contains="RESPONDIDA").exists()
+    client.post(reverse("notificacao_status", args=[n.pk]), {"status": "INVENTADO"})
+    n.refresh_from_db()
+    assert n.status == "RESPONDIDA"
+
+
+def test_filial_nao_muda_status_pela_acao_da_matriz_nem_envia_aviso(client, user_a, filial_a, criar_notificacao):
+    n = criar_notificacao(filial_a, user_a)
+    client.force_login(user_a)
+    assert client.post(reverse("notificacao_status", args=[n.pk]), {"status": "RESPONDIDA"}).status_code == 302
+    assert client.post(reverse("notificacao_aviso", args=[n.pk]), {"tipo": "RESOLVIDA"}).status_code == 302
+    n.refresh_from_db()
+    assert n.status == "PENDENTE" and not n.avisos.exists()
+
+
+def test_matriz_envia_aviso_e_filial_ve_e_marca_como_lido(client, matriz, user_a, filial_a, criar_notificacao):
+    user_a.email = "a@x.local"
+    user_a.save()
+    n = criar_notificacao(filial_a, user_a, numero="A1")
+    client.force_login(matriz)
+    resp = client.post(reverse("notificacao_aviso", args=[n.pk]), {"tipo": "PROBLEMA", "texto": "O anexo não veio."})
+    assert resp.status_code == 302 and n.avisos.count() == 1
+    assert mail.outbox[0].to == ["a@x.local"] and "O anexo não veio." in mail.outbox[0].body
+
+    client.force_login(user_a)
+    painel = client.get(reverse("painel")).content.decode()
+    assert "Avisos novos da matriz" in painel and "A1" in painel
+    detalhe = client.get(reverse("notificacao_detalhe", args=[n.pk])).content.decode()
+    assert "O anexo não veio." in detalhe and "novo" in detalhe
+    assert n.avisos.get().lido_em is not None
+    assert "Avisos novos da matriz" not in client.get(reverse("painel")).content.decode()
+
+
+def test_aviso_de_problema_exige_texto_e_resolvida_nao(client, matriz, user_a, filial_a, criar_notificacao):
+    n = criar_notificacao(filial_a, user_a)
+    client.force_login(matriz)
+    client.post(reverse("notificacao_aviso", args=[n.pk]), {"tipo": "PROBLEMA", "texto": ""})
+    assert not n.avisos.exists()
+    client.post(reverse("notificacao_aviso", args=[n.pk]), {"tipo": "RESOLVIDA", "texto": ""})
+    assert n.avisos.get().tipo == "RESOLVIDA"
+
+
+def test_detalhe_respeita_escopo_e_matriz_ve_leitura(client, matriz, user_a, user_b, filial_a, criar_notificacao):
+    n = criar_notificacao(filial_a, user_a)
+    client.force_login(user_b)
+    assert client.get(reverse("notificacao_detalhe", args=[n.pk])).status_code == 404
+    client.force_login(matriz)
+    html = client.get(reverse("notificacao_detalhe", args=[n.pk])).content.decode()
+    assert "Enviar aviso para a filial" in html and "Editar" not in html
+    # abrir como matriz não marca o aviso como lido
+    from core.services import avisos
+    avisos.enviar_aviso(matriz, n, "RESOLVIDA")
+    client.get(reverse("notificacao_detalhe", args=[n.pk]))
+    assert n.avisos.get().lido_em is None

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Notificação {{ n.numero_det }}</h1>
+  <div>
+    {% if n.anexo %}<a class="btn btn-primary btn-sm" href="{% url 'notificacao_anexo' n.pk %}">Baixar anexo</a>{% endif %}
+    {% if not user.is_matriz %}<a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
+    <a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_lista' %}">Voltar</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-3"><div class="card-header">Dados enviados pela filial</div>
+      <dl class="row mb-0 p-3">
+        <dt class="col-sm-4">Filial</dt><dd class="col-sm-8">{{ n.filial }}</dd>
+        <dt class="col-sm-4">Assunto</dt><dd class="col-sm-8">{{ n.assunto }}</dd>
+        <dt class="col-sm-4">Recebimento</dt><dd class="col-sm-8">{{ n.data_recebimento|date:"d/m/Y" }}</dd>
+        <dt class="col-sm-4">Prazo de resposta</dt><dd class="col-sm-8">{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</dd>
+        <dt class="col-sm-4">Status</dt>
+        <dd class="col-sm-8"><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></dd>
+        <dt class="col-sm-4">Anexo</dt>
+        <dd class="col-sm-8">{% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Baixar</a>{% else %}<span class="text-danger">Não enviado</span>{% endif %}</dd>
+        <dt class="col-sm-4">Observação</dt><dd class="col-sm-8">{{ n.observacao|default:"-"|linebreaksbr }}</dd>
+        <dt class="col-sm-4">Registrada por</dt><dd class="col-sm-8">{{ n.criado_por }} em {{ n.criado_em|date:"d/m/Y H:i" }}</dd>
+      </dl>
+    </div>
+
+    {% if user.is_matriz %}
+    <div class="card shadow-sm"><div class="card-header">Alterar status</div><div class="card-body">
+      <form method="post" action="{% url 'notificacao_status' n.pk %}" class="d-flex gap-2 align-items-start">{% csrf_token %}
+        <div class="flex-grow-1">{{ form_status.status }}</div>
+        <button class="btn btn-primary">Salvar status</button>
+      </form>
+    </div></div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5">
+    {% if user.is_matriz %}
+    <div class="card shadow-sm mb-3"><div class="card-header">Enviar aviso para a filial</div><div class="card-body">
+      <form method="post" action="{% url 'notificacao_aviso' n.pk %}">{% csrf_token %}
+        <p>{{ form_aviso.tipo.label_tag }} {{ form_aviso.tipo }}</p>
+        <p>{{ form_aviso.texto.label_tag }} {{ form_aviso.texto }}<small class="text-muted">{{ form_aviso.texto.help_text }}</small></p>
+        <button class="btn btn-primary">Enviar aviso</button>
+      </form>
+    </div></div>
+    {% endif %}
+
+    <div class="card shadow-sm"><div class="card-header">Avisos da matriz</div>
+      <ul class="list-group list-group-flush">
+      {% for a in avisos %}
+        <li class="list-group-item">
+          <span class="badge {% if a.tipo == 'PROBLEMA' %}text-bg-danger{% else %}text-bg-success{% endif %}">{{ a.get_tipo_display }}</span>
+          {% if a.pk in novos and not user.is_matriz %}<span class="badge text-bg-info">novo</span>{% endif %}
+          <small class="text-muted d-block">{{ a.criado_em|date:"d/m/Y H:i" }} · {{ a.autor }}{% if user.is_matriz %} · {% if a.lido_em %}lido pela filial em {{ a.lido_em|date:"d/m H:i" }}{% else %}ainda não lido{% endif %}{% endif %}</small>
+          {% if a.texto %}<div class="mt-1">{{ a.texto|linebreaksbr }}</div>{% endif %}
+        </li>
+      {% empty %}
+        <li class="list-group-item text-muted">Nenhum aviso.</li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

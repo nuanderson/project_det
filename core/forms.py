@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
-from .models import Filial, Notificacao, Usuario
+from .models import AvisoNotificacao, Filial, Notificacao, Usuario
 
 
 class NotificacaoForm(forms.ModelForm):
@@ -39,6 +39,18 @@ class JustificativaForm(forms.Form):
         label="Justificativa do não envio",
         min_length=10,
         widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+
+class StatusForm(forms.Form):
+    status = forms.ChoiceField(label="Status", choices=Notificacao.Status.choices)
+
+
+class AvisoForm(forms.Form):
+    tipo = forms.ChoiceField(label="Tipo de aviso", choices=AvisoNotificacao.Tipo.choices)
+    texto = forms.CharField(
+        label="Mensagem para a filial", required=False, widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Obrigatória para problema no envio (ex.: anexo não veio).",
     )
 
 

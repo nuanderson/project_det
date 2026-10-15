@@ -24,6 +24,7 @@ Testes automatizados: `.venv\Scripts\python -m pytest`
 - **Fechamento mensal por filial**: `Com notificações` (há registro no mês), `Sem notificações` (a filial declarou), `Justificado` ou `Pendente`. Competência = mês de recebimento da notificação.
 - **Vencida** é derivada do prazo e do status (não é armazenada).
 - **Justificativas**: a filial justifica a própria filial e a matriz pode justificar qualquer uma. O histórico é só-inserção (não edita nem apaga). Criação, edição e exclusão relevantes vão para o log de auditoria.
+- **Papel da matriz nas notificações**: a matriz não edita nem exclui o que a filial enviou. Ela abre a notificação, baixa o anexo, altera o status e envia um aviso à filial ("Resolvida" ou "Problema no envio", este com mensagem, por exemplo anexo não veio). O aviso fica registrado, aparece no painel da filial como novo até ser aberto e também sai por e-mail quando há destinatário.
 - **Escopo**: a filial só enxerga e altera dados da própria filial (`Notificacao.objects.visiveis_para`).
 - **Anexos**: PDF/PNG/JPG até 10 MB, guardados fora de pasta pública e entregues só por download autenticado.
 

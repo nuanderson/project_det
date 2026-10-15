@@ -24,9 +24,11 @@
       <td>{{ n.filial }}</td><td>{{ n.numero_det }}</td><td>{{ n.assunto }}</td>
       <td>{{ n.data_recebimento|date:"d/m/Y" }}</td><td>{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</td>
       <td><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></td>
-      <td class="text-end">
-        {% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Anexo</a> ·{% endif %}
-        <a href="{% url 'notificacao_editar' n.pk %}">Editar</a>
+      <td class="text-end text-nowrap">
+        {% if n.avisos_novos and not user.is_matriz %}<span class="badge text-bg-info">Novo aviso</span>{% endif %}
+        {% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Baixar</a> ·{% elif user.is_matriz %}<span class="text-danger small">sem anexo</span> ·{% endif %}
+        <a href="{% url 'notificacao_detalhe' n.pk %}">Abrir</a>
+        {% if not user.is_matriz %}· <a href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
       </td>
     </tr>
   {% empty %}

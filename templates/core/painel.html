@@ -24,6 +24,17 @@
   </div>
 </div></div>
 
+{% if avisos_novos %}
+<div class="alert alert-info">
+  <strong>Avisos novos da matriz:</strong>
+  <ul class="mb-0">
+  {% for a in avisos_novos %}
+    <li><a href="{% url 'notificacao_detalhe' a.notificacao_id %}">{{ a.notificacao.numero_det }}</a> · {{ a.get_tipo_display }}{% if a.texto %}: {{ a.texto|truncatechars:80 }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 {% if vencidas %}
 <div class="alert alert-danger">Você tem {{ vencidas.count }} notificação(ões) com prazo vencido.</div>
 {% endif %}

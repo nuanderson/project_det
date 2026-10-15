@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from core.models import Filial, Notificacao, Usuario
+from core.services.avisos import emails_filial
 from core.services.fechamento import situacao_do_mes
 
 
@@ -13,12 +14,6 @@ def _emails_matriz():
     return list(
         Usuario.objects.filter(perfil=Usuario.Perfil.MATRIZ, is_active=True).exclude(email="").values_list("email", flat=True)
     )
-
-
-def _emails_filial(filial):
-    destinos = {filial.email} if filial.email else set()
-    destinos |= set(filial.usuarios.filter(is_active=True).exclude(email="").values_list("email", flat=True))
-    return sorted(destinos)
 
 
 class Command(BaseCommand):
@@ -43,7 +38,7 @@ class Command(BaseCommand):
         pendentes = [l for l in situacao_do_mes(ref.year, ref.month) if l["situacao"] == "PENDENTE"]
         for linha in pendentes:
             filial = linha["filial"]
-            destinos = _emails_filial(filial)
+            destinos = emails_filial(filial)
             if destinos:
                 send_mail(
                     f"Controle DET: informe as notificações de {ref.month:02d}/{ref.year}",
@@ -68,7 +63,7 @@ class Command(BaseCommand):
             alvo = hoje + datetime.timedelta(days=dias)
             for filial in Filial.objects.filter(ativa=True):
                 notificacoes = Notificacao.objects.abertas().filter(filial=filial, prazo_resposta=alvo)
-                destinos = _emails_filial(filial)
+                destinos = emails_filial(filial)
                 if notificacoes and destinos:
                     lista = "\n".join(f"- {n.numero_det}: {n.assunto}" for n in notificacoes)
                     send_mail(

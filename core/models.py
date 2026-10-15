@@ -124,6 +124,34 @@ class Notificacao(models.Model):
             raise ValidationError({"prazo_resposta": "O prazo não pode ser anterior à data de recebimento."})
 
 
+class AvisoNotificacao(models.Model):
+    """Aviso da matriz para a filial sobre uma notificação (resolvida ou com problema). Só inserção."""
+
+    class Tipo(models.TextChoices):
+        RESOLVIDA = "RESOLVIDA", "Resolvida"
+        PROBLEMA = "PROBLEMA", "Problema no envio"
+
+    notificacao = models.ForeignKey(Notificacao, on_delete=models.CASCADE, related_name="avisos")
+    tipo = models.CharField(max_length=10, choices=Tipo.choices)
+    texto = models.TextField(blank=True)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    lido_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "aviso da matriz"
+        verbose_name_plural = "avisos da matriz"
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.notificacao}"
+
+    def clean(self):
+        super().clean()
+        if self.tipo == self.Tipo.PROBLEMA and len((self.texto or "").strip()) < 5:
+            raise ValidationError({"texto": "Descreva o problema para a filial (ex.: anexo não veio)."})
+
+
 class FechamentoMensal(models.Model):
     class Situacao(models.TextChoices):
         PENDENTE = "PENDENTE", "Pendente"

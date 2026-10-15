@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Count, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -8,9 +9,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .forms import (
-    FilialForm, FiltroNotificacaoForm, JustificativaForm, NotificacaoForm, UsuarioForm,
+    AvisoForm, FilialForm, FiltroNotificacaoForm, JustificativaForm, NotificacaoForm, StatusForm, UsuarioForm,
 )
-from .models import Filial, Notificacao, Usuario, obter_fechamento
+from .models import AvisoNotificacao, Filial, Notificacao, Usuario, obter_fechamento
+from .services import avisos as avisos_service
 from .services import dashboard as dash
 from .services import exportacao, fechamento as fech
 
@@ -77,6 +79,7 @@ def painel(request):
         "mes": mes,
         "do_mes": notificacoes.filter(data_recebimento__year=ano, data_recebimento__month=mes),
         "vencidas": notificacoes.vencidas(),
+        "avisos_novos": avisos_service.avisos_nao_lidos(filial),
         "form_justificativa": JustificativaForm(),
         "justificativas": fechamento.justificativas.select_related("autor"),
     })
@@ -121,6 +124,10 @@ def justificar(request, filial_id, ano, mes):
 @login_required
 def notificacao_lista(request):
     qs, form = _filtrar_notificacoes(request)
+    qs = qs.annotate(
+        total_avisos=Count("avisos", distinct=True),
+        avisos_novos=Count("avisos", filter=Q(avisos__lido_em__isnull=True), distinct=True),
+    )
     return render(request, "core/notificacao_lista.html", {
         "notificacoes": qs, "filtro": form, "querystring": request.GET.urlencode(),
     })
@@ -142,7 +149,57 @@ def _notificacao_visivel(request, pk):
 
 
 @login_required
+def notificacao_detalhe(request, pk):
+    obj = _notificacao_visivel(request, pk)
+    avisos = list(obj.avisos.select_related("autor"))
+    # A filial vê os avisos agora; marcamos como lidos só depois de montar a lista (para destacar os novos).
+    novos = {a.pk for a in avisos if a.lido_em is None}
+    avisos_service.marcar_avisos_lidos(request.user, obj)
+    return render(request, "core/notificacao_detalhe.html", {
+        "n": obj, "avisos": avisos, "novos": novos,
+        "form_status": StatusForm(initial={"status": obj.status}),
+        "form_aviso": AvisoForm(initial={"tipo": AvisoNotificacao.Tipo.RESOLVIDA}),
+    })
+
+
+@matriz_required
+@require_POST
+def notificacao_status(request, pk):
+    obj = _notificacao_visivel(request, pk)
+    form = StatusForm(request.POST)
+    if form.is_valid():
+        avisos_service.mudar_status(request.user, obj, form.cleaned_data["status"])
+        messages.success(request, "Status atualizado.")
+    else:
+        messages.error(request, "Status inválido.")
+    return redirect("notificacao_detalhe", pk=obj.pk)
+
+
+@matriz_required
+@require_POST
+def notificacao_aviso(request, pk):
+    obj = _notificacao_visivel(request, pk)
+    form = AvisoForm(request.POST)
+    if form.is_valid():
+        try:
+            avisos_service.enviar_aviso(request.user, obj, form.cleaned_data["tipo"], form.cleaned_data["texto"])
+            messages.success(request, "Aviso enviado para a filial.")
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+    else:
+        messages.error(request, "Aviso inválido.")
+    return redirect("notificacao_detalhe", pk=obj.pk)
+
+
+def _somente_filial(request):
+    """O conteúdo enviado pela filial só é alterado/excluído pela própria filial."""
+    if request.user.is_matriz:
+        raise PermissionDenied("A matriz não edita notificações das filiais.")
+
+
+@login_required
 def notificacao_editar(request, pk):
+    _somente_filial(request)
     obj = _notificacao_visivel(request, pk)
     form = NotificacaoForm(request.POST or None, request.FILES or None, instance=obj, usuario=request.user)
     if request.method == "POST" and form.is_valid():
@@ -156,6 +213,7 @@ def notificacao_editar(request, pk):
 @login_required
 @require_POST
 def notificacao_excluir(request, pk):
+    _somente_filial(request)
     obj = _notificacao_visivel(request, pk)
     descricao = str(obj)
     obj.delete()
