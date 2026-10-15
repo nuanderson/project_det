@@ -9,38 +9,45 @@
   <link href="{% static 'css/tema.css' %}" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-isac mb-4">
-  <div class="container">
-    <a class="navbar-brand" href="{% url 'home' %}"><img src="{% static 'img/logo_isac.png' %}" alt="ISAC - Instituto Saúde e Cidadania"></a>
-    {% if user.is_authenticated %}
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-label="Menu"><span class="navbar-toggler-icon"></span></button>
-    <div class="collapse navbar-collapse" id="menu">
-      <div class="navbar-nav me-auto">
-        {% if user.is_matriz %}
-          <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
-          <a class="nav-link" href="{% url 'nao_enviaram' %}">Quem não enviou</a>
-          <a class="nav-link" href="{% url 'filial_lista' %}">Filiais</a>
-          <a class="nav-link" href="{% url 'usuario_lista' %}">Usuários</a>
-        {% else %}
-          <a class="nav-link" href="{% url 'painel' %}">Meu mês</a>
-        {% endif %}
-        <a class="nav-link" href="{% url 'notificacao_lista' %}">Notificações</a>
+{% with rota=request.resolver_match.url_name %}
+<div class="{% if user.is_authenticated %}app-shell{% else %}login-wrap{% endif %}">
+  {% if user.is_authenticated %}
+  <aside class="sidebar">
+    <a class="sidebar-logo" href="{% url 'home' %}"><img src="{% static 'img/logo_isac.png' %}" alt="ISAC - Instituto Saúde e Cidadania"></a>
+    <nav class="sidebar-nav" aria-label="Menu principal">
+      {% if user.is_matriz %}
+        <a class="nav-item-isac {% if rota == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
+        <a class="nav-item-isac {% if rota == 'nao_enviaram' %}active{% endif %}" href="{% url 'nao_enviaram' %}">Quem não enviou</a>
+        <a class="nav-item-isac {% if rota == 'notificacao_lista' or rota == 'notificacao_detalhe' %}active{% endif %}" href="{% url 'notificacao_lista' %}">Notificações</a>
+        <a class="nav-item-isac {% if rota == 'filial_lista' or rota == 'filial_nova' or rota == 'filial_editar' %}active{% endif %}" href="{% url 'filial_lista' %}">Filiais</a>
+        <a class="nav-item-isac {% if rota == 'usuario_lista' or rota == 'usuario_criar' %}active{% endif %}" href="{% url 'usuario_lista' %}">Usuários</a>
+      {% else %}
+        <a class="nav-item-isac {% if rota == 'painel' %}active{% endif %}" href="{% url 'painel' %}">Meu mês</a>
+        <a class="nav-item-isac {% if rota == 'notificacao_lista' or rota == 'notificacao_detalhe' or rota == 'notificacao_criar' or rota == 'notificacao_editar' %}active{% endif %}" href="{% url 'notificacao_lista' %}">Notificações</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-user">
+      <div>
+        <div class="sidebar-user-nome">{{ user.get_username }}</div>
+        <div class="sidebar-user-perfil">{% if user.is_matriz %}Perfil: Matriz{% else %}{{ user.filial }}{% endif %}</div>
       </div>
-      <span class="navbar-text me-3">{{ user.get_username }}{% if user.filial %} · {{ user.filial }}{% endif %}</span>
-      <a class="btn btn-outline-isac btn-sm me-2" href="{% url 'password_change' %}">Senha</a>
-      <form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}
-        <button class="btn btn-outline-isac btn-sm">Sair</button>
-      </form>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-isac btn-sm flex-fill" href="{% url 'password_change' %}">Senha</a>
+        <form method="post" action="{% url 'logout' %}" class="flex-fill">{% csrf_token %}
+          <button class="btn btn-outline-isac btn-sm w-100">Sair</button>
+        </form>
+      </div>
     </div>
-    {% endif %}
-  </div>
-</nav>
-<main class="container pb-5">
-  {% for m in messages %}
-    <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags|default:'info' }}{% endif %}">{{ m }}</div>
-  {% endfor %}
-  {% block content %}{% endblock %}
-</main>
+  </aside>
+  {% endif %}
+  <main class="{% if user.is_authenticated %}app-main{% else %}login-main{% endif %}">
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags|default:'info' }}{% endif %}">{{ m }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endwith %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
 </body>

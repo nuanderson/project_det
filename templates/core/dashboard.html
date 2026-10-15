@@ -9,7 +9,7 @@
     <select name="ano" class="form-select form-select-sm">
       {% for a in anos %}<option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>{% endfor %}
     </select>
-    <button class="btn btn-secondary btn-sm">Aplicar</button>
+    <button class="btn btn-primary btn-sm">Aplicar</button>
     <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_dashboard' 'xlsx' %}?ano={{ ano }}&mes={{ mes }}">Excel</a>
     <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_dashboard' 'pdf' %}?ano={{ ano }}&mes={{ mes }}">PDF</a>
   </form>

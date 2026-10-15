@@ -5,7 +5,7 @@
   <form method="get" class="d-flex gap-2">
     <select name="mes" class="form-select form-select-sm">{% for n, nome in meses %}<option value="{{ n }}" {% if n == mes %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select>
     <input name="ano" type="number" value="{{ ano }}" class="form-control form-control-sm" style="width:6rem">
-    <button class="btn btn-secondary btn-sm">Aplicar</button>
+    <button class="btn btn-primary btn-sm">Aplicar</button>
   </form>
 </div>
 {% for l in linhas %}
