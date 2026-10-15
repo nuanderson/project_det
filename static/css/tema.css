@@ -123,3 +123,10 @@ ul.errorlist { list-style: none; padding: 0; margin: 0 0 .5rem; color: #c0392b; 
 /* Evita quebrar o nome da filial e os números nas tabelas */
 .table td:first-child, .table th:first-child { white-space: nowrap; }
 .table > :not(caption) > * > * { padding-left: 1.25rem; padding-right: 1.25rem; }
+
+/* Ações das linhas da tabela (Baixar / Editar / Abrir) */
+.acoes-linha { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }
+.acoes-linha .btn { min-height: 34px; padding: .2rem .9rem; font-size: .8125rem; }
+.btn-baixar { background: #fff; border: 1px solid var(--isac-borda); color: var(--isac-azul); }
+.btn-baixar:hover { background: var(--isac-cabecalho); border-color: var(--isac-azul); color: var(--isac-azul); }
+.sem-anexo { font-size: .75rem; color: #c0392b; }

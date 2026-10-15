@@ -17,18 +17,20 @@
 </form>
 <div class="card shadow-sm"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>Filial</th><th>Nº DET</th><th>Assunto</th><th>Recebimento</th><th>Prazo</th><th>Status</th><th></th></tr></thead>
+  <thead><tr><th>Filial</th><th>Nº DET</th><th>Assunto</th><th>Recebimento</th><th>Prazo</th><th>Status</th><th class="text-end">Ações</th></tr></thead>
   <tbody>
   {% for n in notificacoes %}
     <tr>
       <td>{{ n.filial }}</td><td>{{ n.numero_det }}</td><td>{{ n.assunto }}</td>
       <td>{{ n.data_recebimento|date:"d/m/Y" }}</td><td>{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</td>
       <td><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></td>
-      <td class="text-end text-nowrap">
-        {% if n.avisos_novos and not user.is_matriz %}<span class="badge text-bg-info">Novo aviso</span>{% endif %}
-        {% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Baixar</a> ·{% elif user.is_matriz %}<span class="text-danger small">sem anexo</span> ·{% endif %}
-        <a href="{% url 'notificacao_detalhe' n.pk %}">Abrir</a>
-        {% if not user.is_matriz %}· <a href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
+      <td>
+        <div class="acoes-linha">
+          {% if n.avisos_novos and not user.is_matriz %}<span class="badge text-bg-info">Novo aviso</span>{% endif %}
+          {% if n.anexo %}<a class="btn btn-sm btn-baixar" href="{% url 'notificacao_anexo' n.pk %}">Baixar</a>{% elif user.is_matriz %}<span class="sem-anexo">sem anexo</span>{% endif %}
+          {% if not user.is_matriz %}<a class="btn btn-sm btn-outline-isac" href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
+          <a class="btn btn-sm btn-primary" href="{% url 'notificacao_detalhe' n.pk %}">Abrir</a>
+        </div>
       </td>
     </tr>
   {% empty %}
