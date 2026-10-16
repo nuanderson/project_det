@@ -1,0 +1,19 @@
+# Blueprint do Render para o link de TESTE (dados fictícios). Não use para dados reais.
+services:
+  - type: web
+    name: controle-det-isac
+    runtime: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: bash start.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: DET_DEBUG
+        value: "False"
+      - key: DET_SECRET_KEY
+        generateValue: true
+      - key: DET_PERMITIR_DEMO
+        value: "True"
+      - key: DET_DEMO_SENHA
+        generateValue: true

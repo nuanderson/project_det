@@ -20,6 +20,15 @@ if not DEBUG and SECRET_KEY.startswith("dev-insecure"):
     raise RuntimeError("Defina DET_SECRET_KEY quando DET_DEBUG=False.")
 ALLOWED_HOSTS = [h for h in env("DET_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
 CSRF_TRUSTED_ORIGINS = [o for o in env("DET_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+# Render informa o domínio público do serviço; libera host e origem do CSRF automaticamente.
+_host_render = env("RENDER_EXTERNAL_HOSTNAME")
+if _host_render:
+    ALLOWED_HOSTS.append(_host_render)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_host_render}")
+
+# Carga de dados demo fora do modo debug (ex.: link de teste online). Desligada por padrão.
+PERMITIR_DEMO = env_bool("DET_PERMITIR_DEMO", False)
+DEMO_SENHA = env("DET_DEMO_SENHA", "")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -77,7 +86,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": env("DET_SQLITE_PATH", str(BASE_DIR / "db.sqlite3")),
         }
     }
 
@@ -128,6 +137,9 @@ ALERTA_DIA_LEMBRETE_MENSAL = int(env("DET_ALERTA_DIA_MES", "5"))
 ALERTA_DIAS_ANTES_PRAZO = [int(x) for x in env("DET_ALERTA_DIAS_PRAZO", "5,2").split(",") if x]
 
 if not DEBUG:
+    # Atrás de proxy HTTPS (Render, nginx, IIS): confia no cabeçalho para evitar loop de redirecionamento.
+    if env_bool("DET_PROXY_SSL", True):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = env_bool("DET_SSL_REDIRECT", True)

@@ -51,6 +51,15 @@ Antes de publicar:
 
 Dados pessoais (LGPD): os anexos podem conter dados de trabalhadores. Restrinja o acesso ao servidor e às pastas de backup, e defina quem na matriz recebe usuário.
 
+## 4.1 Link de teste online (Render, só dados fictícios)
+O repositório traz um `render.yaml` (Blueprint) para publicar uma demonstração no plano gratuito do Render, a partir do GitHub:
+1. No Render: **New +** → **Blueprint** → escolher este repositório → **Apply**.
+2. Aguardar o build; o endereço fica em `https://controle-det-isac.onrender.com` (ou parecido).
+3. A senha da demonstração é gerada pelo Render: serviço → **Environment** → `DET_DEMO_SENHA`. Usuários: `matriz`, `filial1`, `filial2`, `filial3`.
+
+Como funciona: `build.sh` instala e coleta os estáticos; `start.sh` migra o banco, repopula os dados demo (`DET_PERMITIR_DEMO=True`) e sobe o waitress atrás do HTTPS do Render.
+Limitações: o disco do plano gratuito é temporário (banco e anexos somem a cada deploy ou reinício), o serviço "dorme" quando fica parado e o link é público. **Não cadastre dados reais.** Para uso de verdade, siga a seção 4.
+
 ## 5. Identidade visual
 Logo e paleta do ISAC em `static/img/logo_isac.png` e `static/css/tema.css` (azul `#005aa9`, azul claro `#0092d5`, cinza `#606062`). A logo também aparece nos PDFs exportados.
 

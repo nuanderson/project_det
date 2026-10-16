@@ -209,3 +209,34 @@ def test_detalhe_respeita_escopo_e_matriz_ve_leitura(client, matriz, user_a, use
     avisos.enviar_aviso(matriz, n, "RESOLVIDA")
     client.get(reverse("notificacao_detalhe", args=[n.pk]))
     assert n.avisos.get().lido_em is None
+
+
+# ---------- demonstração online ----------
+
+def test_demo_online_exige_permissao_e_senha_do_ambiente(settings):
+    from django.core.management.base import CommandError
+    settings.DEBUG = False
+    settings.PERMITIR_DEMO = False
+    with pytest.raises(CommandError):
+        call_command("popular_demo")
+    settings.PERMITIR_DEMO = True
+    settings.DEMO_SENHA = "curta"
+    with pytest.raises(CommandError):
+        call_command("popular_demo")
+
+
+def test_demo_online_usa_a_senha_do_ambiente_e_nao_cria_superusuario(settings):
+    from core.models import Usuario
+    settings.DEBUG = False
+    settings.PERMITIR_DEMO = True
+    settings.DEMO_SENHA = "senha-demo-online-123"
+    call_command("popular_demo")
+    call_command("popular_demo")  # idempotente
+    matriz = Usuario.objects.get(username="matriz")
+    assert matriz.check_password("senha-demo-online-123")
+    assert not matriz.is_superuser and not matriz.is_staff
+    assert Usuario.objects.get(username="filial1").check_password("senha-demo-online-123")
+    assert not Usuario.objects.get(username="filial1").check_password("filial1-demo-123")
+    total = Notificacao.objects.count()
+    call_command("popular_demo")
+    assert Notificacao.objects.count() == total
