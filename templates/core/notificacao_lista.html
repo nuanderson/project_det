@@ -10,8 +10,10 @@
   </div>
 </div>
 
-<form method="get" class="filtros" aria-label="Filtros de notificações">
+<form method="get" class="filtros" role="search" aria-label="Buscar e filtrar notificações">
   {{ filtro.prazo }}
+  {% if ordem_atual %}<input type="hidden" name="ordem" value="{{ ordem_atual }}">{% endif %}
+  <div class="filtro-item filtro-busca">{{ filtro.q }}</div>
   {% if user.is_matriz %}<div class="filtro-item filtro-largo">{{ filtro.filial }}</div>{% endif %}
   <div class="filtro-item">{{ filtro.ano }}</div>
   <div class="filtro-item">{{ filtro.mes }}</div>
@@ -27,13 +29,25 @@
 
 <div class="card shadow-sm"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <caption class="visually-hidden">Lista de notificações</caption>
-  <thead><tr><th scope="col">Filial</th><th scope="col">Nº DET</th><th scope="col">Assunto</th><th scope="col">Recebimento</th><th scope="col">Prazo</th><th scope="col">Status</th><th scope="col" class="text-end">Ações</th></tr></thead>
+  <caption class="visually-hidden">Lista de notificações. Use os títulos das colunas para ordenar.</caption>
+  <thead><tr>
+    {% for c in colunas %}
+    <th scope="col" aria-sort="{{ c.aria }}"><a class="ordenar {% if c.ativa %}ativa{% endif %}" href="{{ c.url }}">{{ c.rotulo }}{% if c.ativa %}<i class="bi {% if c.desc %}bi-caret-down-fill{% else %}bi-caret-up-fill{% endif %}" aria-hidden="true"></i>{% endif %}</a></th>
+    {% endfor %}
+    <th scope="col" class="text-end">Ações</th>
+  </tr></thead>
   <tbody>
   {% for n in notificacoes %}
-    <tr>
-      <td>{{ n.filial }}</td><td>{{ n.numero_det }}{% if n.tipo == "AUTO_INFRACAO" %} <span class="badge text-bg-dark">Auto</span>{% endif %}</td><td class="col-assunto">{{ n.assunto }}</td>
-      <td>{{ n.data_recebimento|date:"d/m/Y" }}</td><td>{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</td>
+    <tr class="{% if n.vencida %}linha-vencida{% endif %}">
+      <td>{{ n.filial }}</td><td>{{ n.numero_det }}{% if n.tipo == "AUTO_INFRACAO" %} <span class="badge text-bg-dark">Auto</span>{% elif n.tipo == "COMUNICADO" %} <span class="badge text-bg-secondary">Caixa postal</span>{% endif %}</td><td class="col-assunto">{{ n.assunto }}</td>
+      <td>{{ n.data_recebimento|date:"d/m/Y" }}</td>
+      <td>
+        {% if n.prazo_resposta %}
+          <span class="{% if n.vencida %}prazo-vencido{% elif n.prazo_proximo %}prazo-proximo{% endif %}">{{ n.prazo_resposta|date:"d/m/Y" }}</span>
+          {% if n.vencida %}<small class="prazo-nota prazo-vencido">vencido há {{ n.dias_atraso }} dia{{ n.dias_atraso|pluralize }}</small>
+          {% elif n.prazo_proximo %}<small class="prazo-nota prazo-proximo">{% if n.dias_para_prazo == 0 %}vence hoje{% else %}vence em {{ n.dias_para_prazo }} dia{{ n.dias_para_prazo|pluralize }}{% endif %}</small>{% endif %}
+        {% else %}-{% endif %}
+      </td>
       <td><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></td>
       <td>
         <div class="acoes-linha">
@@ -53,5 +67,7 @@
     </td></tr>
   {% endfor %}
   </tbody>
-</table></div></div>
+</table></div>
+{% include "core/_paginacao.html" %}
+</div>
 {% endblock %}

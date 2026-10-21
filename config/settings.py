@@ -120,6 +120,9 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = ANEXO_MAX_MB * 1024 * 1024
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Itens por página nas listas (paginação no servidor).
+PAGE_SIZE = int(env("DET_PAGE_SIZE", "20"))
+
 # E-mail: console em desenvolvimento, SMTP quando DET_EMAIL_HOST estiver definido.
 if env("DET_EMAIL_HOST"):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

@@ -17,7 +17,7 @@
   </form>
   {% if obj %}
   <hr>
-  <form method="post" action="{% url 'notificacao_excluir' obj.pk %}" onsubmit="return confirm('Excluir esta notificação?')">{% csrf_token %}
+  <form method="post" action="{% url 'notificacao_excluir' obj.pk %}" data-confirmar="Excluir esta notificação? Essa ação não pode ser desfeita.">{% csrf_token %}
     <button class="btn btn-outline-danger btn-sm">Excluir notificação</button>
   </form>
   {% endif %}

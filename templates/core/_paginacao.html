@@ -1,0 +1,20 @@
+{% if pagina.paginator.count %}
+<nav class="paginacao" aria-label="Paginação">
+  <span class="paginacao-resumo">Mostrando {{ pagina.start_index }}–{{ pagina.end_index }} de {{ pagina.paginator.count }}</span>
+  {% if pagina.paginator.num_pages > 1 %}
+  <ul class="pagination pagination-sm mb-0">
+    <li class="page-item {% if not url_anterior %}disabled{% endif %}">
+      {% if url_anterior %}<a class="page-link" href="{{ url_anterior }}" rel="prev">Anterior</a>{% else %}<span class="page-link">Anterior</span>{% endif %}
+    </li>
+    {% for item in itens_pagina %}
+      {% if item.reticencias %}<li class="page-item disabled"><span class="page-link">…</span></li>
+      {% elif item.atual %}<li class="page-item active" aria-current="page"><span class="page-link">{{ item.n }}</span></li>
+      {% else %}<li class="page-item"><a class="page-link" href="{{ item.url }}">{{ item.n }}</a></li>{% endif %}
+    {% endfor %}
+    <li class="page-item {% if not url_proxima %}disabled{% endif %}">
+      {% if url_proxima %}<a class="page-link" href="{{ url_proxima }}" rel="next">Próxima</a>{% else %}<span class="page-link">Próxima</span>{% endif %}
+    </li>
+  </ul>
+  {% endif %}
+</nav>
+{% endif %}

@@ -15,7 +15,7 @@
         <button class="btn btn-outline-secondary btn-sm">Sem notificações neste mês</button>
       </form>
       {% elif fechamento.situacao == 'SEM_NOTIFICACOES' %}
-      <form method="post" action="{% url 'desfazer_declaracao' filial.pk ano mes %}" class="d-inline">{% csrf_token %}
+      <form method="post" action="{% url 'desfazer_declaracao' filial.pk ano mes %}" class="d-inline" data-confirmar="Desfazer a declaração de que não houve notificações neste mês?">{% csrf_token %}
         <input type="hidden" name="next" value="{% url 'painel' %}?ano={{ ano }}&mes={{ mes }}">
         <button class="btn btn-outline-secondary btn-sm">Desfazer declaração</button>
       </form>

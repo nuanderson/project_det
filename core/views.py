@@ -1,9 +1,11 @@
 import datetime
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import Count, Q
+from django.core.paginator import Paginator
+from django.db.models import Count, F, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -58,6 +60,12 @@ def _filtrar_notificacoes(request):
             qs = qs.vencidas()
         elif d["status"]:
             qs = qs.filter(status=d["status"])
+        if d["q"]:
+            termo = d["q"].strip()
+            qs = qs.filter(
+                Q(numero_det__icontains=termo) | Q(assunto__icontains=termo)
+                | Q(numero_processo__icontains=termo) | Q(filial__nome__icontains=termo)
+            )
         if d["prazo"] == "7":
             hoje = timezone.localdate()
             qs = qs.abertas().filter(prazo_resposta__gte=hoje, prazo_resposta__lte=hoje + datetime.timedelta(days=7))
@@ -128,6 +136,48 @@ def justificar(request, filial_id, ano, mes):
 
 # ---------- Notificações ----------
 
+# Ordenações permitidas na lista (lista fechada: o valor da URL nunca vai direto para o banco).
+ORDENACOES = {
+    "filial": ("Filial", ["filial__nome", "-data_recebimento"]),
+    "numero": ("Nº DET", ["numero_det"]),
+    "assunto": ("Assunto", ["assunto"]),
+    "recebimento": ("Recebimento", ["data_recebimento", "id"]),
+    "prazo": ("Prazo", [F("prazo_resposta").asc(nulls_last=True), "id"]),
+    "status": ("Status", ["status", "-data_recebimento"]),
+}
+ORDEM_PADRAO = "-recebimento"
+
+
+def _ordem_pedida(valor):
+    desc = (valor or ORDEM_PADRAO).startswith("-")
+    chave = (valor or ORDEM_PADRAO).lstrip("-")
+    if chave not in ORDENACOES:
+        return "recebimento", True
+    return chave, desc
+
+
+def _ordenar(qs, chave, desc):
+    campos = []
+    for c in ORDENACOES[chave][1]:
+        if not desc:
+            campos.append(c)
+        elif hasattr(c, "asc"):
+            campos.append(F("prazo_resposta").desc(nulls_last=True))
+        else:
+            campos.append(c[1:] if c.startswith("-") else f"-{c}")
+    return qs.order_by(*campos)
+
+
+def _url_com(request, **mudar):
+    params = request.GET.copy()
+    for chave, valor in mudar.items():
+        if valor is None:
+            params.pop(chave, None)
+        else:
+            params[chave] = valor
+    return "?" + params.urlencode() if params else "?"
+
+
 @login_required
 def notificacao_lista(request):
     qs, form = _filtrar_notificacoes(request)
@@ -135,9 +185,33 @@ def notificacao_lista(request):
         total_avisos=Count("avisos", distinct=True),
         avisos_novos=Count("avisos", filter=Q(avisos__lido_em__isnull=True), distinct=True),
     )
+    chave, desc = _ordem_pedida(request.GET.get("ordem"))
+    qs = _ordenar(qs, chave, desc)
+    pagina = Paginator(qs, settings.PAGE_SIZE).get_page(request.GET.get("page"))
+
+    colunas = []
+    for k, (rotulo, _) in ORDENACOES.items():
+        ativa = k == chave
+        proxima = f"-{k}" if ativa and not desc else k  # clicar de novo inverte a direção
+        colunas.append({
+            "rotulo": rotulo, "ativa": ativa, "desc": desc,
+            "aria": ("descending" if desc else "ascending") if ativa else "none",
+            "url": _url_com(request, ordem=proxima, page=None),
+        })
+    sem_pagina = request.GET.copy()
+    sem_pagina.pop("page", None)
     filtrado = any(request.GET.get(campo) for campo in form.fields)
     return render(request, "core/notificacao_lista.html", {
-        "notificacoes": qs, "filtro": form, "querystring": request.GET.urlencode(), "filtrado": filtrado,
+        "notificacoes": pagina, "pagina": pagina, "filtro": form, "filtrado": filtrado, "colunas": colunas,
+        "querystring": sem_pagina.urlencode(),  # exportações levam todos os resultados, sem paginar
+        "ordem_atual": request.GET.get("ordem", ""),
+        "itens_pagina": [
+            {"n": n, "url": _url_com(request, page=n), "atual": n == pagina.number}
+            if n != Paginator.ELLIPSIS else {"reticencias": True}
+            for n in pagina.paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1)
+        ],
+        "url_anterior": _url_com(request, page=pagina.previous_page_number()) if pagina.has_previous() else "",
+        "url_proxima": _url_com(request, page=pagina.next_page_number()) if pagina.has_next() else "",
     })
 
 

@@ -2,6 +2,7 @@ import re
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from django.utils import timezone
 
 from .models import AtualizacaoNotificacao, AvisoNotificacao, Filial, Notificacao, Usuario
 from .services.historico import registrar_atualizacao
@@ -19,7 +20,16 @@ class NotificacaoForm(forms.ModelForm):
             "data_recebimento": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "prazo_resposta": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "observacao": forms.Textarea(attrs={"rows": 3}),
+            "inscricao": forms.TextInput(attrs={"data-mask": "cnpj", "inputmode": "numeric", "placeholder": "00.000.000/0000-00", "maxlength": 18}),
+            "numero_processo": forms.TextInput(attrs={"data-mask": "digitos", "inputmode": "numeric", "maxlength": 30}),
+            "codigo_acesso": forms.TextInput(attrs={"data-mask": "codigo", "maxlength": 20, "autocomplete": "off"}),
         }
+
+    def clean_data_recebimento(self):
+        data = self.cleaned_data["data_recebimento"]
+        if data and data > timezone.localdate():
+            raise forms.ValidationError("A data de recebimento não pode ser no futuro.")
+        return data
 
     atualizacao = forms.CharField(
         label="Histórico: registrar atualização", required=False, widget=forms.Textarea(attrs={"rows": 3}),
@@ -118,6 +128,7 @@ class ComplementoForm(forms.Form):
     codigo_acesso = forms.CharField(
         label="Código de acesso ao e-Processo", required=False, max_length=20,
         help_text="Libera o link do histórico do processo.",
+        widget=forms.TextInput(attrs={"data-mask": "codigo", "maxlength": 20, "autocomplete": "off"}),
     )
 
     def __init__(self, *args, notificacao, **kwargs):
@@ -146,10 +157,48 @@ class AvisoForm(forms.Form):
     )
 
 
+def cnpj_valido(digitos):
+    """Confere os dois dígitos verificadores do CNPJ (14 dígitos, sem todos iguais)."""
+    if len(digitos) != 14 or len(set(digitos)) == 1:
+        return False
+    def dv(base, pesos):
+        soma = sum(int(d) * p for d, p in zip(base, pesos))
+        resto = soma % 11
+        return "0" if resto < 2 else str(11 - resto)
+    p1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    d1 = dv(digitos[:12], p1)
+    d2 = dv(digitos[:12] + d1, [6] + p1)
+    return digitos[12:] == d1 + d2
+
+
+def formatar_cnpj(digitos):
+    return f"{digitos[:2]}.{digitos[2:5]}.{digitos[5:8]}/{digitos[8:12]}-{digitos[12:]}"
+
+
 class FilialForm(forms.ModelForm):
     class Meta:
         model = Filial
         fields = ["nome", "cnpj", "cidade", "uf", "email", "ativa"]
+        widgets = {
+            "cnpj": forms.TextInput(attrs={"data-mask": "cnpj", "inputmode": "numeric", "placeholder": "00.000.000/0000-00", "maxlength": 18}),
+            "uf": forms.TextInput(attrs={"maxlength": 2, "style": "text-transform: uppercase"}),
+            "email": forms.EmailInput(attrs={"autocomplete": "email", "placeholder": "rh@filial.org.br"}),
+        }
+
+    def clean_cnpj(self):
+        digitos = re.sub(r"\D", "", self.cleaned_data["cnpj"])
+        if not cnpj_valido(digitos):
+            raise forms.ValidationError("CNPJ inválido. Confira os 14 dígitos.")
+        formatado = formatar_cnpj(digitos)
+        outros = Filial.objects.filter(cnpj=formatado)
+        if self.instance.pk:
+            outros = outros.exclude(pk=self.instance.pk)
+        if outros.exists():
+            raise forms.ValidationError("Já existe uma filial com este CNPJ.")
+        return formatado
+
+    def clean_uf(self):
+        return self.cleaned_data["uf"].strip().upper()
 
 
 class UsuarioForm(UserCreationForm):
@@ -168,6 +217,10 @@ class UsuarioForm(UserCreationForm):
 
 
 class FiltroNotificacaoForm(forms.Form):
+    q = forms.CharField(
+        required=False, max_length=100,
+        widget=forms.TextInput(attrs={"placeholder": "Buscar por nº, assunto, processo ou filial", "aria-label": "Buscar", "type": "search"}),
+    )
     filial = forms.ModelChoiceField(
         Filial.objects.all(), required=False, empty_label="Todas as filiais",
         widget=forms.Select(attrs={"aria-label": "Filial"}),

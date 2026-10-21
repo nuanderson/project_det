@@ -89,6 +89,7 @@ class Notificacao(models.Model):
     class Tipo(models.TextChoices):
         NOTIFICACAO = "NOTIFICACAO", "Notificação"
         AUTO_INFRACAO = "AUTO_INFRACAO", "Auto de infração"
+        COMUNICADO = "COMUNICADO", "Mensagem da caixa postal"
 
     filial = models.ForeignKey(Filial, on_delete=models.PROTECT, related_name="notificacoes")
     tipo = models.CharField(max_length=15, choices=Tipo.choices, default=Tipo.NOTIFICACAO)
@@ -132,6 +133,24 @@ class Notificacao(models.Model):
             and self.status != self.Status.RESPONDIDA
             and self.prazo_resposta < timezone.localdate()
         )
+
+    @property
+    def dias_para_prazo(self):
+        """Dias até o prazo (negativo = atrasado); None se não há prazo ou já foi respondida."""
+        if not self.prazo_resposta or self.status == self.Status.RESPONDIDA:
+            return None
+        return (self.prazo_resposta - timezone.localdate()).days
+
+    @property
+    def dias_atraso(self):
+        dias = self.dias_para_prazo
+        return -dias if dias is not None and dias < 0 else 0
+
+    @property
+    def prazo_proximo(self):
+        """Prazo nos próximos 7 dias (inclui hoje)."""
+        dias = self.dias_para_prazo
+        return dias is not None and 0 <= dias <= 7
 
     @property
     def status_exibicao(self):

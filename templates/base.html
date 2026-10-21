@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static assets %}<!doctype html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{% static 'css/tema.css' %}" rel="stylesheet">
+  <link href="{% asset 'css/tema.css' %}" rel="stylesheet">
 </head>
 <body>
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
@@ -50,14 +50,35 @@
   </aside>
   {% endif %}
   <main id="conteudo" class="{% if user.is_authenticated %}app-main{% else %}login-main{% endif %}">
-    {% for m in messages %}
-      <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags|default:'info' }}{% endif %}" role="{% if m.tags == 'error' %}alert{% else %}status{% endif %}">{{ m }}</div>
-    {% endfor %}
     {% block content %}{% endblock %}
   </main>
 </div>
 {% endwith %}
+
+{# Avisos do sistema como "toast". Já nascem visíveis (funciona sem JS); o JS só os fecha sozinhos. #}
+<div class="toast-container" aria-live="polite">
+  {% for m in messages %}
+    <div class="toast show align-items-center tom-{% if m.tags == 'error' %}erro{% elif m.tags == 'warning' %}aviso{% elif m.tags == 'success' %}sucesso{% else %}info{% endif %}"
+         role="{% if m.tags == 'error' %}alert{% else %}status{% endif %}" data-autohide="{% if m.tags == 'error' or m.tags == 'warning' %}false{% else %}true{% endif %}">
+      <div class="d-flex">
+        <div class="toast-body"><i class="bi {% if m.tags == 'error' %}bi-x-octagon{% elif m.tags == 'warning' %}bi-exclamation-triangle{% elif m.tags == 'success' %}bi-check-circle{% else %}bi-info-circle{% endif %}" aria-hidden="true"></i>{{ m }}</div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar aviso"></button>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{# Confirmação antes de ações destrutivas: formulários com data-confirmar="mensagem". #}
+<div class="modal fade" id="modal-confirmar" tabindex="-1" aria-labelledby="modal-confirmar-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title h5" id="modal-confirmar-titulo">Confirmar ação</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+    <div class="modal-body" id="modal-confirmar-texto"></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-isac" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-danger" id="modal-confirmar-ok">Confirmar</button></div>
+  </div></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% asset 'js/app.js' %}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
