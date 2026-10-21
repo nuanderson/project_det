@@ -138,9 +138,19 @@ class UsuarioForm(UserCreationForm):
 
 
 class FiltroNotificacaoForm(forms.Form):
-    filial = forms.ModelChoiceField(Filial.objects.all(), required=False, empty_label="Todas as filiais")
-    ano = forms.IntegerField(required=False, min_value=2000, max_value=2100)
-    mes = forms.IntegerField(required=False, min_value=1, max_value=12)
+    filial = forms.ModelChoiceField(
+        Filial.objects.all(), required=False, empty_label="Todas as filiais",
+        widget=forms.Select(attrs={"aria-label": "Filial"}),
+    )
+    ano = forms.IntegerField(
+        required=False, min_value=2000, max_value=2100,
+        widget=forms.NumberInput(attrs={"placeholder": "Ano", "aria-label": "Ano"}),
+    )
+    mes = forms.IntegerField(
+        required=False, min_value=1, max_value=12,
+        widget=forms.NumberInput(attrs={"placeholder": "Mês (1-12)", "aria-label": "Mês"}),
+    )
+    prazo = forms.ChoiceField(required=False, choices=[("", ""), ("7", "Prazo nos próximos 7 dias")], widget=forms.HiddenInput)
     status = forms.ChoiceField(
         required=False,
         choices=[("", "Todos os status")] + list(Notificacao.Status.choices) + [("VENCIDA", "Vencida")],

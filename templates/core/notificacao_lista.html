@@ -1,28 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="page-header">
   <h1 class="h4 mb-0">Notificações</h1>
-  <div>
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'xlsx' %}?{{ querystring }}">Excel</a>
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'pdf' %}?{{ querystring }}">PDF</a>
-    <a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_importar' %}">Importar PDF do DET</a>
-    <a class="btn btn-primary btn-sm" href="{% url 'notificacao_criar' %}">Nova notificação</a>
+  <div class="page-actions">
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'xlsx' %}?{{ querystring }}"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Excel</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'pdf' %}?{{ querystring }}"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>PDF</a>
+    <a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_importar' %}"><i class="bi bi-upload" aria-hidden="true"></i>Importar PDF do DET</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'notificacao_criar' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nova notificação</a>
   </div>
 </div>
-<form method="get" class="row g-2 mb-3">
-  {% if user.is_matriz %}<div class="col-md-3">{{ filtro.filial }}</div>{% endif %}
-  <div class="col-md-2">{{ filtro.ano }}</div>
-  <div class="col-md-2">{{ filtro.mes }}</div>
-  <div class="col-md-3">{{ filtro.status }}</div>
-  <div class="col-md-2"><button class="btn btn-primary w-100">Filtrar</button></div>
+
+<form method="get" class="filtros" aria-label="Filtros de notificações">
+  {{ filtro.prazo }}
+  {% if user.is_matriz %}<div class="filtro-item filtro-largo">{{ filtro.filial }}</div>{% endif %}
+  <div class="filtro-item">{{ filtro.ano }}</div>
+  <div class="filtro-item">{{ filtro.mes }}</div>
+  <div class="filtro-item filtro-largo">{{ filtro.status }}</div>
+  <div class="filtro-botoes">
+    <button class="btn btn-primary">Filtrar</button>
+    {% if filtrado %}<a class="btn btn-outline-isac" href="{% url 'notificacao_lista' %}">Limpar filtros</a>{% endif %}
+  </div>
 </form>
+{% if filtro.prazo.value == "7" %}
+<p class="filtro-chip"><i class="bi bi-funnel" aria-hidden="true"></i> Prazo nos próximos 7 dias</p>
+{% endif %}
+
 <div class="card shadow-sm"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>Filial</th><th>Nº DET</th><th>Assunto</th><th>Recebimento</th><th>Prazo</th><th>Status</th><th class="text-end">Ações</th></tr></thead>
+  <caption class="visually-hidden">Lista de notificações</caption>
+  <thead><tr><th scope="col">Filial</th><th scope="col">Nº DET</th><th scope="col">Assunto</th><th scope="col">Recebimento</th><th scope="col">Prazo</th><th scope="col">Status</th><th scope="col" class="text-end">Ações</th></tr></thead>
   <tbody>
   {% for n in notificacoes %}
     <tr>
-      <td>{{ n.filial }}</td><td>{{ n.numero_det }}{% if n.tipo == "AUTO_INFRACAO" %} <span class="badge text-bg-dark">Auto</span>{% endif %}</td><td>{{ n.assunto }}</td>
+      <td>{{ n.filial }}</td><td>{{ n.numero_det }}{% if n.tipo == "AUTO_INFRACAO" %} <span class="badge text-bg-dark">Auto</span>{% endif %}</td><td class="col-assunto">{{ n.assunto }}</td>
       <td>{{ n.data_recebimento|date:"d/m/Y" }}</td><td>{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</td>
       <td><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></td>
       <td>
@@ -31,12 +41,16 @@
           {% if n.anexo %}<a class="btn btn-sm btn-baixar" href="{% url 'notificacao_anexo' n.pk %}">Baixar</a>{% elif user.is_matriz %}<span class="sem-anexo">sem anexo</span>{% endif %}
           {% if not user.is_matriz %}<a class="btn btn-sm btn-outline-isac" href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
           {% if n.link_processo %}<a class="btn btn-sm btn-outline-isac" href="{{ n.link_processo }}" target="_blank" rel="noopener noreferrer">Histórico</a>{% endif %}
-          <a class="btn btn-sm btn-primary" href="{% url 'notificacao_detalhe' n.pk %}">Abrir</a>
+          <a class="btn btn-sm btn-primary" href="{% url 'notificacao_detalhe' n.pk %}" aria-label="Abrir notificação {{ n.numero_det }}">Abrir</a>
         </div>
       </td>
     </tr>
   {% empty %}
-    <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma notificação encontrada.</td></tr>
+    <tr><td colspan="7" class="vazio">
+      <i class="bi bi-inbox" aria-hidden="true"></i>
+      <strong>{% if filtrado %}Nenhuma notificação neste período ou filtro{% else %}Nenhuma notificação registrada{% endif %}</strong>
+      <span>{% if filtrado %}Tente outros filtros ou <a href="{% url 'notificacao_lista' %}">limpe os filtros</a>.{% else %}Use "Nova notificação" ou "Importar PDF do DET" para começar.{% endif %}</span>
+    </td></tr>
   {% endfor %}
   </tbody>
 </table></div></div>

@@ -108,3 +108,21 @@ def test_detalhe_mostra_o_historico_para_filial_e_matriz(client, matriz, user_a,
     assert "Documentos separados" in client.get(reverse("notificacao_detalhe", args=[n.pk])).content.decode()
     client.force_login(user_b)
     assert client.get(reverse("notificacao_detalhe", args=[n.pk])).status_code == 404
+
+
+def test_fluxo_real_importar_e_salvar_pelo_destino_do_formulario(client, monkeypatch, user_a):
+    """Reproduz o navegador: o Salvar vai para o `action` do formulário exibido na tela de importação."""
+    import re
+
+    monkeypatch.setattr(imp, "extrair_texto", lambda arq: "AUTO DE INFRAÇÃO Nº 99.999.991-1\nNº Proc.:12345678901202617\nData: 29/09/2026")
+    client.force_login(user_a)
+    resp = client.post(reverse("notificacao_importar"), {"pdf": SimpleUploadedFile("auto.pdf", b"%PDF-1.4 x", content_type="application/pdf")})
+    html = resp.content.decode()
+    action = re.search(r'<form method="post" enctype="multipart/form-data"([^>]*)>', html).group(1)
+    destino = re.search(r'action="([^"]+)"', action)
+    assert destino and destino.group(1) == reverse("notificacao_criar")
+
+    token = resp.context["importacao"]["token"]
+    dados = {**DADOS, "importacao_token": token, "importacao_nome": "auto.pdf"}
+    resp = client.post(destino.group(1), dados)
+    assert resp.status_code == 302 and Notificacao.objects.get().anexo

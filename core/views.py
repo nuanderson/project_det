@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -56,6 +58,9 @@ def _filtrar_notificacoes(request):
             qs = qs.vencidas()
         elif d["status"]:
             qs = qs.filter(status=d["status"])
+        if d["prazo"] == "7":
+            hoje = timezone.localdate()
+            qs = qs.abertas().filter(prazo_resposta__gte=hoje, prazo_resposta__lte=hoje + datetime.timedelta(days=7))
     return qs, form
 
 
@@ -130,8 +135,9 @@ def notificacao_lista(request):
         total_avisos=Count("avisos", distinct=True),
         avisos_novos=Count("avisos", filter=Q(avisos__lido_em__isnull=True), distinct=True),
     )
+    filtrado = any(request.GET.get(campo) for campo in form.fields)
     return render(request, "core/notificacao_lista.html", {
-        "notificacoes": qs, "filtro": form, "querystring": request.GET.urlencode(),
+        "notificacoes": qs, "filtro": form, "querystring": request.GET.urlencode(), "filtrado": filtrado,
     })
 
 

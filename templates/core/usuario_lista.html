@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3"><h1 class="h4">Usuários</h1><a class="btn btn-primary btn-sm" href="{% url 'usuario_criar' %}">Novo usuário</a></div>
+<div class="page-header"><h1 class="h4">Usuários</h1><a class="btn btn-primary btn-sm" href="{% url 'usuario_criar' %}">Novo usuário</a></div>
 <div class="card shadow-sm"><table class="table mb-0">
   <thead><tr><th>Usuário</th><th>Perfil</th><th>Filial</th><th>Ativo</th></tr></thead>
   <tbody>{% for u in usuarios %}

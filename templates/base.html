@@ -6,24 +6,33 @@
   <title>{% block title %}Controle DET · ISAC{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="{% static 'css/tema.css' %}" rel="stylesheet">
 </head>
 <body>
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 {% with rota=request.resolver_match.url_name %}
 <div class="{% if user.is_authenticated %}app-shell{% else %}login-wrap{% endif %}">
   {% if user.is_authenticated %}
-  <aside class="sidebar">
-    <a class="sidebar-logo" href="{% url 'home' %}"><img src="{% static 'img/logo_isac.png' %}" alt="ISAC - Instituto Saúde e Cidadania"></a>
+  <header class="topbar d-lg-none">
+    <a class="topbar-logo" href="{% url 'home' %}"><img src="{% static 'img/logo_isac.png' %}" alt="ISAC - Instituto Saúde e Cidadania"></a>
+    <button class="topbar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#menu-lateral"
+            aria-controls="menu-lateral" aria-expanded="false" aria-label="Abrir ou fechar o menu">
+      <i class="bi bi-list" aria-hidden="true"></i>
+    </button>
+  </header>
+  <aside id="menu-lateral" class="sidebar collapse d-lg-flex">
+    <a class="sidebar-logo d-none d-lg-block" href="{% url 'home' %}"><img src="{% static 'img/logo_isac.png' %}" alt="ISAC - Instituto Saúde e Cidadania"></a>
     <nav class="sidebar-nav" aria-label="Menu principal">
       {% if user.is_matriz %}
-        <a class="nav-item-isac {% if rota == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
-        <a class="nav-item-isac {% if rota == 'nao_enviaram' %}active{% endif %}" href="{% url 'nao_enviaram' %}">Quem não enviou</a>
-        <a class="nav-item-isac {% if rota == 'notificacao_lista' or rota == 'notificacao_detalhe' %}active{% endif %}" href="{% url 'notificacao_lista' %}">Notificações</a>
-        <a class="nav-item-isac {% if rota == 'filial_lista' or rota == 'filial_nova' or rota == 'filial_editar' %}active{% endif %}" href="{% url 'filial_lista' %}">Filiais</a>
-        <a class="nav-item-isac {% if rota == 'usuario_lista' or rota == 'usuario_criar' %}active{% endif %}" href="{% url 'usuario_lista' %}">Usuários</a>
+        <a class="nav-item-isac {% if rota == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}" {% if rota == 'dashboard' %}aria-current="page"{% endif %}><i class="bi bi-speedometer2" aria-hidden="true"></i>Dashboard</a>
+        <a class="nav-item-isac {% if rota == 'nao_enviaram' %}active{% endif %}" href="{% url 'nao_enviaram' %}" {% if rota == 'nao_enviaram' %}aria-current="page"{% endif %}><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Quem não enviou</a>
+        <a class="nav-item-isac {% if rota == 'notificacao_lista' or rota == 'notificacao_detalhe' %}active{% endif %}" href="{% url 'notificacao_lista' %}"><i class="bi bi-bell" aria-hidden="true"></i>Notificações</a>
+        <a class="nav-item-isac {% if rota == 'filial_lista' or rota == 'filial_nova' or rota == 'filial_editar' %}active{% endif %}" href="{% url 'filial_lista' %}"><i class="bi bi-buildings" aria-hidden="true"></i>Filiais</a>
+        <a class="nav-item-isac {% if rota == 'usuario_lista' or rota == 'usuario_criar' %}active{% endif %}" href="{% url 'usuario_lista' %}"><i class="bi bi-people" aria-hidden="true"></i>Usuários</a>
       {% else %}
-        <a class="nav-item-isac {% if rota == 'painel' %}active{% endif %}" href="{% url 'painel' %}">Meu mês</a>
-        <a class="nav-item-isac {% if rota == 'notificacao_lista' or rota == 'notificacao_detalhe' or rota == 'notificacao_criar' or rota == 'notificacao_editar' %}active{% endif %}" href="{% url 'notificacao_lista' %}">Notificações</a>
+        <a class="nav-item-isac {% if rota == 'painel' %}active{% endif %}" href="{% url 'painel' %}" {% if rota == 'painel' %}aria-current="page"{% endif %}><i class="bi bi-calendar-check" aria-hidden="true"></i>Meu mês</a>
+        <a class="nav-item-isac {% if rota == 'notificacao_lista' or rota == 'notificacao_detalhe' or rota == 'notificacao_criar' or rota == 'notificacao_editar' %}active{% endif %}" href="{% url 'notificacao_lista' %}"><i class="bi bi-bell" aria-hidden="true"></i>Notificações</a>
       {% endif %}
     </nav>
     <div class="sidebar-user">
@@ -40,9 +49,9 @@
     </div>
   </aside>
   {% endif %}
-  <main class="{% if user.is_authenticated %}app-main{% else %}login-main{% endif %}">
+  <main id="conteudo" class="{% if user.is_authenticated %}app-main{% else %}login-main{% endif %}">
     {% for m in messages %}
-      <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags|default:'info' }}{% endif %}">{{ m }}</div>
+      <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags|default:'info' }}{% endif %}" role="{% if m.tags == 'error' %}alert{% else %}status{% endif %}">{{ m }}</div>
     {% endfor %}
     {% block content %}{% endblock %}
   </main>

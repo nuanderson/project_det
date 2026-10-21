@@ -18,8 +18,9 @@ def test_filial_so_ve_as_proprias_notificacoes(client, user_a, user_b, filial_a,
     nb = criar_notificacao(filial_b, user_b, numero="B1")
     client.force_login(user_a)
 
-    html = client.get(reverse("notificacao_lista")).content.decode()
-    assert "A1" in html and "B1" not in html
+    # Confere a lista de notificações, não o HTML (o token CSRF aleatório pode conter "B1").
+    visiveis = {n.numero_det for n in client.get(reverse("notificacao_lista")).context["notificacoes"]}
+    assert visiveis == {"A1"}
     assert client.get(reverse("notificacao_editar", args=[nb.pk])).status_code == 404
     assert client.post(reverse("notificacao_excluir", args=[nb.pk])).status_code == 404
     assert client.get(reverse("notificacao_anexo", args=[nb.pk])).status_code == 404
@@ -29,8 +30,8 @@ def test_filial_so_ve_as_proprias_notificacoes(client, user_a, user_b, filial_a,
 def test_filtro_por_filial_nao_vaza_para_usuario_de_filial(client, user_a, user_b, filial_a, filial_b, criar_notificacao):
     criar_notificacao(filial_b, user_b, numero="B1")
     client.force_login(user_a)
-    html = client.get(reverse("notificacao_lista"), {"filial": filial_b.pk}).content.decode()
-    assert "B1" not in html
+    visiveis = client.get(reverse("notificacao_lista"), {"filial": filial_b.pk}).context["notificacoes"]
+    assert not list(visiveis)
 
 
 def test_exportacao_respeita_escopo(client, user_a, user_b, filial_a, filial_b, criar_notificacao):

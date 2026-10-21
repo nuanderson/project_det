@@ -3,7 +3,7 @@
 <h1 class="h4">{{ filial }} · {{ mes|stringformat:"02d" }}/{{ ano }}</h1>
 
 <div class="card shadow-sm mb-3"><div class="card-body">
-  <div class="d-flex justify-content-between align-items-center">
+  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
     <div>Situação do mês:
       <span class="badge {% if fechamento.situacao == 'PENDENTE' %}text-bg-danger{% elif fechamento.situacao == 'JUSTIFICADO' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ fechamento.get_situacao_display }}</span>
     </div>
