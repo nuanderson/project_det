@@ -11,7 +11,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .forms import (
-    AvisoForm, FilialForm, FiltroNotificacaoForm, ImportarPDFForm, JustificativaForm, NotificacaoForm, StatusForm,
+    AvisoForm, ComplementoForm, FilialForm, FiltroNotificacaoForm, ImportarPDFForm, JustificativaForm, NotificacaoForm, StatusForm,
     UsuarioForm,
 )
 from .models import AvisoNotificacao, Filial, Notificacao, Usuario, obter_fechamento
@@ -224,8 +224,26 @@ def notificacao_detalhe(request, pk):
         "n": obj, "avisos": avisos, "novos": novos,
         "historico": obj.atualizacoes.select_related("autor"),
         "form_status": StatusForm(initial={"status": obj.status}),
+        "form_complemento": ComplementoForm(notificacao=obj) if request.user.is_matriz else None,
         "form_aviso": AvisoForm(initial={"tipo": AvisoNotificacao.Tipo.RESOLVIDA}),
     })
+
+
+@matriz_required
+@require_POST
+def notificacao_complemento(request, pk):
+    obj = _notificacao_visivel(request, pk)
+    form = ComplementoForm(request.POST, notificacao=obj)
+    if form.is_valid():
+        mudou = avisos_service.complementar(
+            request.user, obj, form.cleaned_data["prazo_resposta"], form.cleaned_data["codigo_acesso"]
+        )
+        messages.success(request, "Dados atualizados." if mudou else "Nenhuma alteração para salvar.")
+    else:
+        for erros in form.errors.values():
+            for erro in erros:
+                messages.error(request, erro)
+    return redirect("notificacao_detalhe", pk=obj.pk)
 
 
 @matriz_required

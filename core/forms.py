@@ -108,6 +108,36 @@ class StatusForm(forms.Form):
     status = forms.ChoiceField(label="Status", choices=Notificacao.Status.choices)
 
 
+class ComplementoForm(forms.Form):
+    """A matriz completa só o que a importação não traz; o resto da notificação não é editável por ela."""
+
+    prazo_resposta = forms.DateField(
+        label="Prazo de resposta", required=False,
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+    )
+    codigo_acesso = forms.CharField(
+        label="Código de acesso ao e-Processo", required=False, max_length=20,
+        help_text="Libera o link do histórico do processo.",
+    )
+
+    def __init__(self, *args, notificacao, **kwargs):
+        kwargs.setdefault("initial", {"prazo_resposta": notificacao.prazo_resposta, "codigo_acesso": notificacao.codigo_acesso})
+        super().__init__(*args, **kwargs)
+        self.notificacao = notificacao
+
+    def clean_prazo_resposta(self):
+        prazo = self.cleaned_data["prazo_resposta"]
+        if prazo and prazo < self.notificacao.data_recebimento:
+            raise forms.ValidationError("O prazo não pode ser anterior à data de recebimento.")
+        return prazo
+
+    def clean_codigo_acesso(self):
+        valor = self.cleaned_data["codigo_acesso"].strip().upper()
+        if valor and not re.fullmatch(r"[A-Z0-9]{4,20}", valor):
+            raise forms.ValidationError("Use apenas letras e números (4 a 20 caracteres).")
+        return valor
+
+
 class AvisoForm(forms.Form):
     tipo = forms.ChoiceField(label="Tipo de aviso", choices=AvisoNotificacao.Tipo.choices)
     texto = forms.CharField(

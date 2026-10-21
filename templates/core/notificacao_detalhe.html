@@ -23,13 +23,26 @@
         <dd class="col-sm-8"><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></dd>
         {% if n.numero_processo %}<dt class="col-sm-4">Nº do processo</dt><dd class="col-sm-8">{{ n.numero_processo }}</dd>{% endif %}
         <dt class="col-sm-4">Histórico (e-Processo)</dt>
-        <dd class="col-sm-8">{% if n.link_processo %}<a href="{{ n.link_processo }}" target="_blank" rel="noopener noreferrer">Abrir histórico do processo</a>{% elif n.numero_processo %}<span class="text-muted">Informe o código de acesso (edite a notificação) para liberar o link.</span>{% else %}-{% endif %}</dd>
+        <dd class="col-sm-8">{% if n.link_processo %}<a href="{{ n.link_processo }}" target="_blank" rel="noopener noreferrer">Abrir histórico do processo</a>{% elif n.numero_processo %}<span class="text-muted">{% if user.is_matriz %}Informe o código de acesso em "Complementar dados" para liberar o link.{% else %}Informe o código de acesso (edite a notificação) para liberar o link.{% endif %}</span>{% else %}-{% endif %}</dd>
         <dt class="col-sm-4">Anexo</dt>
         <dd class="col-sm-8">{% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Baixar</a>{% else %}<span class="text-danger">Não enviado</span>{% endif %}</dd>
         <dt class="col-sm-4">Observação</dt><dd class="col-sm-8">{{ n.observacao|default:"-"|linebreaksbr }}</dd>
         <dt class="col-sm-4">Registrada por</dt><dd class="col-sm-8">{{ n.criado_por }} em {{ n.criado_em|date:"d/m/Y H:i" }}</dd>
       </dl>
     </div>
+
+    {% if user.is_matriz %}
+    <div class="card shadow-sm mb-3"><div class="card-header">Complementar dados</div><div class="card-body">
+      <p class="text-muted small mb-3">A importação não traz o prazo de resposta. Informe aqui o prazo e, se quiser o link do histórico, o código de acesso do e-Processo. Os demais dados enviados pela filial não são alterados.</p>
+      <form method="post" action="{% url 'notificacao_complemento' n.pk %}">{% csrf_token %}
+        <div class="row g-3">
+          <div class="col-sm-6">{{ form_complemento.prazo_resposta.label_tag }}{{ form_complemento.prazo_resposta }}</div>
+          <div class="col-sm-6">{{ form_complemento.codigo_acesso.label_tag }}{{ form_complemento.codigo_acesso }}<small class="text-muted">{{ form_complemento.codigo_acesso.help_text }}</small></div>
+        </div>
+        <button class="btn btn-primary mt-3">Salvar dados</button>
+      </form>
+    </div></div>
+    {% endif %}
 
     {% include "core/_historico.html" %}
 

@@ -151,6 +151,7 @@ class AtualizacaoNotificacao(models.Model):
         MANUAL = "MANUAL", "Atualização"
         IMPORTACAO = "IMPORTACAO", "Importação do PDF"
         STATUS = "STATUS", "Mudança de status"
+        COMPLEMENTO = "COMPLEMENTO", "Complemento da matriz"
 
     notificacao = models.ForeignKey(Notificacao, on_delete=models.CASCADE, related_name="atualizacoes")
     origem = models.CharField(max_length=12, choices=Origem.choices, default=Origem.MANUAL)

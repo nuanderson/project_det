@@ -36,6 +36,39 @@ def mudar_status(usuario, notificacao, novo_status):
 
 
 @transaction.atomic
+def complementar(usuario, notificacao, prazo_resposta, codigo_acesso):
+    """Matriz informa prazo e/ou código de acesso; cada mudança entra no histórico (sem gravar o código)."""
+    if not usuario.is_matriz:
+        raise PermissionDenied("Somente a matriz complementa os dados.")
+    Origem = AtualizacaoNotificacao.Origem
+    campos = []
+    if prazo_resposta != notificacao.prazo_resposta:
+        antes, notificacao.prazo_resposta = notificacao.prazo_resposta, prazo_resposta
+        campos.append("prazo_resposta")
+        if prazo_resposta is None:
+            texto = "Prazo de resposta removido."
+        elif antes is None:
+            texto = f"Prazo de resposta definido para {prazo_resposta:%d/%m/%Y}."
+        else:
+            texto = f"Prazo de resposta alterado de {antes:%d/%m/%Y} para {prazo_resposta:%d/%m/%Y}."
+        registrar_atualizacao(notificacao, usuario, texto, Origem.COMPLEMENTO)
+    if codigo_acesso != notificacao.codigo_acesso:
+        antes, notificacao.codigo_acesso = notificacao.codigo_acesso, codigo_acesso
+        campos.append("codigo_acesso")
+        if not codigo_acesso:
+            texto = "Código de acesso do e-Processo removido."
+        elif not antes:
+            texto = "Código de acesso do e-Processo informado."
+        else:
+            texto = "Código de acesso do e-Processo alterado."
+        registrar_atualizacao(notificacao, usuario, texto, Origem.COMPLEMENTO)
+    if campos:
+        notificacao.save(update_fields=[*campos, "atualizado_em"])
+        registrar_auditoria(usuario, "complementar_notificacao", notificacao, ", ".join(campos))
+    return bool(campos)
+
+
+@transaction.atomic
 def enviar_aviso(usuario, notificacao, tipo, texto=""):
     """Registra o aviso para a filial e avisa por e-mail (se houver destinatário)."""
     if not usuario.is_matriz:
