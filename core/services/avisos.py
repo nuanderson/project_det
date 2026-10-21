@@ -4,8 +4,9 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
-from ..models import AvisoNotificacao, Notificacao
+from ..models import AtualizacaoNotificacao, AvisoNotificacao, Notificacao
 from .fechamento import registrar_auditoria
+from .historico import registrar_atualizacao
 
 
 def emails_filial(filial):
@@ -26,6 +27,11 @@ def mudar_status(usuario, notificacao, novo_status):
         notificacao.status = novo_status
         notificacao.save(update_fields=["status", "atualizado_em"])
         registrar_auditoria(usuario, "mudar_status", notificacao, f"{anterior} -> {novo_status}")
+        rotulos = dict(Notificacao.Status.choices)
+        registrar_atualizacao(
+            notificacao, usuario, f"Status alterado de {rotulos[anterior]} para {rotulos[novo_status]}.",
+            AtualizacaoNotificacao.Origem.STATUS,
+        )
     return notificacao
 
 

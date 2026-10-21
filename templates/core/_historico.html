@@ -1,0 +1,13 @@
+<div class="card shadow-sm mb-3"><div class="card-header">Histórico de atualizações</div>
+  <ul class="list-group list-group-flush">
+  {% for h in historico %}
+    <li class="list-group-item">
+      <span class="badge {% if h.origem == 'STATUS' %}text-bg-info{% elif h.origem == 'IMPORTACAO' %}text-bg-secondary{% else %}text-bg-warning{% endif %}">{{ h.get_origem_display }}</span>
+      <small class="text-muted d-block">{{ h.criado_em|date:"d/m/Y H:i" }} · {{ h.autor }}</small>
+      <div class="mt-1">{{ h.texto|linebreaksbr }}</div>
+    </li>
+  {% empty %}
+    <li class="list-group-item text-muted">Nenhuma atualização registrada.</li>
+  {% endfor %}
+  </ul>
+</div>

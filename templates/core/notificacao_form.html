@@ -1,8 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card shadow-sm"><div class="card-body">
+<div class="card shadow-sm mb-3"><div class="card-body">
   <h1 class="h4 mb-3">{{ titulo }}</h1>
-  <form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}
+  {% if importacao %}
+  <div class="alert alert-info">
+    Dados lidos do PDF <b>{{ importacao.nome }}</b>. Confira cada campo antes de salvar.<br>
+    <b>Anexo:</b> {{ importacao.nome }} <span class="badge text-bg-success">anexado automaticamente</span>
+  </div>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    {% if importacao %}<input type="hidden" name="importacao_token" value="{{ importacao.token }}"><input type="hidden" name="importacao_nome" value="{{ importacao.nome }}">{% endif %}
+    {{ form.as_p }}
     <button class="btn btn-primary">Salvar</button>
     <a class="btn btn-link" href="{% url 'notificacao_lista' %}">Cancelar</a>
   </form>
@@ -13,4 +21,5 @@
   </form>
   {% endif %}
 </div></div>
+{% if obj %}{% include "core/_historico.html" %}{% endif %}
 {% endblock %}

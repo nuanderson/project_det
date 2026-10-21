@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm"><div class="card-body">
+  <h1 class="h4 mb-2">Importar PDF do DET</h1>
+  <p class="text-muted">No DET, exporte/baixe o documento em PDF e envie aqui. O sistema lê os dados e abre o cadastro já preenchido para você conferir. Hoje reconhece <b>Auto de Infração</b>.</p>
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary">Ler PDF</button>
+    <a class="btn btn-link" href="{% url 'notificacao_lista' %}">Cancelar</a>
+  </form>
+</div></div>
+{% endblock %}

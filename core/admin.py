@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import AvisoNotificacao, FechamentoMensal, Filial, JustificativaHistorico, LogAuditoria, Notificacao, Usuario
+from .models import AtualizacaoNotificacao, AvisoNotificacao, FechamentoMensal, Filial, JustificativaHistorico, LogAuditoria, Notificacao, Usuario
 
 
 @admin.register(Usuario)
@@ -53,3 +53,8 @@ class LogAdmin(SomenteLeitura):
 @admin.register(AvisoNotificacao)
 class AvisoAdmin(SomenteLeitura):
     list_display = ("notificacao", "tipo", "autor", "criado_em", "lido_em")
+
+
+@admin.register(AtualizacaoNotificacao)
+class AtualizacaoAdmin(SomenteLeitura):
+    list_display = ("notificacao", "origem", "autor", "criado_em")

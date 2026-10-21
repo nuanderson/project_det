@@ -9,12 +9,14 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .forms import (
-    AvisoForm, FilialForm, FiltroNotificacaoForm, JustificativaForm, NotificacaoForm, StatusForm, UsuarioForm,
+    AvisoForm, FilialForm, FiltroNotificacaoForm, ImportarPDFForm, JustificativaForm, NotificacaoForm, StatusForm,
+    UsuarioForm,
 )
 from .models import AvisoNotificacao, Filial, Notificacao, Usuario, obter_fechamento
 from .services import avisos as avisos_service
 from .services import dashboard as dash
 from .services import exportacao, fechamento as fech
+from .services import importacao_pdf as imp
 
 matriz_required = user_passes_test(lambda u: u.is_authenticated and u.is_matriz, login_url="login")
 
@@ -133,15 +135,72 @@ def notificacao_lista(request):
     })
 
 
+SESSAO_IMPORTACOES = "importacoes_pdf"
+
+
+def _token_valido(request, token):
+    return bool(token) and token in request.session.get(SESSAO_IMPORTACOES, [])
+
+
+def _esquecer_token(request, token):
+    request.session[SESSAO_IMPORTACOES] = [t for t in request.session.get(SESSAO_IMPORTACOES, []) if t != token]
+    imp.descartar_temporario(token)
+
+
 @login_required
 def notificacao_criar(request):
-    form = NotificacaoForm(request.POST or None, request.FILES or None, usuario=request.user)
+    token = request.POST.get("importacao_token", "") if request.method == "POST" else ""
+    nome_pdf = request.POST.get("importacao_nome", "documento-det.pdf")
+    arquivos = request.FILES
+    if _token_valido(request, token) and not request.FILES.get("anexo"):
+        temporario = imp.abrir_temporario(token, nome_pdf)
+        if temporario:
+            arquivos = request.FILES.copy()
+            arquivos["anexo"] = temporario
+    importando = _token_valido(request, token)
+    form = NotificacaoForm(
+        request.POST or None, arquivos or None, usuario=request.user, pdf_importado=nome_pdf if importando else None
+    )
     if request.method == "POST" and form.is_valid():
         obj = form.save()
+        if _token_valido(request, token):
+            _esquecer_token(request, token)
         fech.registrar_auditoria(request.user, "criar_notificacao", obj)
         messages.success(request, "Notificação registrada.")
         return redirect("notificacao_lista")
-    return render(request, "core/notificacao_form.html", {"form": form, "titulo": "Nova notificação"})
+    contexto = {"form": form, "titulo": "Nova notificação"}
+    if _token_valido(request, token):
+        contexto["importacao"] = {"token": token, "nome": nome_pdf}
+    return render(request, "core/notificacao_form.html", contexto)
+
+
+@login_required
+def notificacao_importar(request):
+    """Lê o PDF exportado do DET e abre o cadastro já preenchido, para a pessoa conferir e salvar."""
+    form = ImportarPDFForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        pdf = form.cleaned_data["pdf"]
+        try:
+            dados = imp.analisar_pdf(pdf)
+        except ValueError:
+            form.add_error("pdf", "Não foi possível ler este PDF. Baixe-o novamente no DET ou cadastre manualmente.")
+        else:
+            inicial, mensagens, erros = imp.sugerir(dados, request.user)
+            if erros:
+                for e in erros:
+                    form.add_error("pdf", e)
+            else:
+                token = imp.guardar_temporario(pdf)
+                request.session[SESSAO_IMPORTACOES] = [*request.session.get(SESSAO_IMPORTACOES, [])[-4:], token]
+                for m in mensagens:
+                    messages.warning(request, m)
+                fech.registrar_auditoria(request.user, "importar_pdf_det", pdf.name[:100])
+                return render(request, "core/notificacao_form.html", {
+                    "form": NotificacaoForm(initial=inicial, usuario=request.user, pdf_importado=pdf.name),
+                    "titulo": "Nova notificação (importada do PDF)",
+                    "importacao": {"token": token, "nome": pdf.name},
+                })
+    return render(request, "core/notificacao_importar.html", {"form": form})
 
 
 def _notificacao_visivel(request, pk):
@@ -157,6 +216,7 @@ def notificacao_detalhe(request, pk):
     avisos_service.marcar_avisos_lidos(request.user, obj)
     return render(request, "core/notificacao_detalhe.html", {
         "n": obj, "avisos": avisos, "novos": novos,
+        "historico": obj.atualizacoes.select_related("autor"),
         "form_status": StatusForm(initial={"status": obj.status}),
         "form_aviso": AvisoForm(initial={"tipo": AvisoNotificacao.Tipo.RESOLVIDA}),
     })
@@ -207,7 +267,10 @@ def notificacao_editar(request, pk):
         fech.registrar_auditoria(request.user, "editar_notificacao", obj)
         messages.success(request, "Notificação atualizada.")
         return redirect("notificacao_lista")
-    return render(request, "core/notificacao_form.html", {"form": form, "titulo": "Editar notificação", "obj": obj})
+    return render(request, "core/notificacao_form.html", {
+        "form": form, "titulo": "Editar notificação", "obj": obj,
+        "historico": obj.atualizacoes.select_related("autor"),
+    })
 
 
 @login_required

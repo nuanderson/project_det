@@ -1,4 +1,5 @@
 import uuid
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, UserManager
@@ -7,6 +8,8 @@ from django.db import models
 from django.utils import timezone
 
 from .validators import validar_anexo
+
+EPROCESSO_URL = "https://eprocesso.sit.trabalho.gov.br/Paginas/ConsultaProcesso"
 
 
 class Filial(models.Model):
@@ -83,8 +86,16 @@ class Notificacao(models.Model):
         EM_ANDAMENTO = "EM_ANDAMENTO", "Em andamento"
         RESPONDIDA = "RESPONDIDA", "Respondida"
 
+    class Tipo(models.TextChoices):
+        NOTIFICACAO = "NOTIFICACAO", "Notificação"
+        AUTO_INFRACAO = "AUTO_INFRACAO", "Auto de infração"
+
     filial = models.ForeignKey(Filial, on_delete=models.PROTECT, related_name="notificacoes")
+    tipo = models.CharField(max_length=15, choices=Tipo.choices, default=Tipo.NOTIFICACAO)
     numero_det = models.CharField("Nº / identificação no DET", max_length=60)
+    numero_processo = models.CharField("Nº do processo", max_length=30, blank=True)
+    inscricao = models.CharField("CNPJ do autuado (inscrição)", max_length=18, blank=True)
+    codigo_acesso = models.CharField("Código de acesso ao processo", max_length=20, blank=True)
     assunto = models.CharField(max_length=200)
     data_recebimento = models.DateField("Data de recebimento")
     prazo_resposta = models.DateField("Prazo de resposta", null=True, blank=True)
@@ -106,6 +117,15 @@ class Notificacao(models.Model):
         return f"{self.numero_det} - {self.filial}"
 
     @property
+    def link_processo(self):
+        """Link do histórico no e-Processo; vazio enquanto faltar algum dos três dados."""
+        if not (self.numero_processo and self.inscricao and self.codigo_acesso):
+            return ""
+        return f"{EPROCESSO_URL}?" + urlencode(
+            {"NrProcesso": self.numero_processo, "NrInscricao": self.inscricao, "CdAcesso": self.codigo_acesso}
+        )
+
+    @property
     def vencida(self):
         return bool(
             self.prazo_resposta
@@ -122,6 +142,37 @@ class Notificacao(models.Model):
         super().clean()
         if self.prazo_resposta and self.data_recebimento and self.prazo_resposta < self.data_recebimento:
             raise ValidationError({"prazo_resposta": "O prazo não pode ser anterior à data de recebimento."})
+
+
+class AtualizacaoNotificacao(models.Model):
+    """Histórico da notificação: só inserção, para manter o registro de cada atualização."""
+
+    class Origem(models.TextChoices):
+        MANUAL = "MANUAL", "Atualização"
+        IMPORTACAO = "IMPORTACAO", "Importação do PDF"
+        STATUS = "STATUS", "Mudança de status"
+
+    notificacao = models.ForeignKey(Notificacao, on_delete=models.CASCADE, related_name="atualizacoes")
+    origem = models.CharField(max_length=12, choices=Origem.choices, default=Origem.MANUAL)
+    texto = models.TextField()
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "atualização da notificação"
+        verbose_name_plural = "atualizações da notificação"
+
+    def __str__(self):
+        return f"{self.get_origem_display()} - {self.notificacao}"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("Atualizações do histórico não podem ser editadas.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Atualizações do histórico não podem ser excluídas.")
 
 
 class AvisoNotificacao(models.Model):

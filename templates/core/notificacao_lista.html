@@ -5,6 +5,7 @@
   <div>
     <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'xlsx' %}?{{ querystring }}">Excel</a>
     <a class="btn btn-outline-secondary btn-sm" href="{% url 'exportar_notificacoes' 'pdf' %}?{{ querystring }}">PDF</a>
+    <a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_importar' %}">Importar PDF do DET</a>
     <a class="btn btn-primary btn-sm" href="{% url 'notificacao_criar' %}">Nova notificação</a>
   </div>
 </div>
@@ -21,7 +22,7 @@
   <tbody>
   {% for n in notificacoes %}
     <tr>
-      <td>{{ n.filial }}</td><td>{{ n.numero_det }}</td><td>{{ n.assunto }}</td>
+      <td>{{ n.filial }}</td><td>{{ n.numero_det }}{% if n.tipo == "AUTO_INFRACAO" %} <span class="badge text-bg-dark">Auto</span>{% endif %}</td><td>{{ n.assunto }}</td>
       <td>{{ n.data_recebimento|date:"d/m/Y" }}</td><td>{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</td>
       <td><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></td>
       <td>
@@ -29,6 +30,7 @@
           {% if n.avisos_novos and not user.is_matriz %}<span class="badge text-bg-info">Novo aviso</span>{% endif %}
           {% if n.anexo %}<a class="btn btn-sm btn-baixar" href="{% url 'notificacao_anexo' n.pk %}">Baixar</a>{% elif user.is_matriz %}<span class="sem-anexo">sem anexo</span>{% endif %}
           {% if not user.is_matriz %}<a class="btn btn-sm btn-outline-isac" href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
+          {% if n.link_processo %}<a class="btn btn-sm btn-outline-isac" href="{{ n.link_processo }}" target="_blank" rel="noopener noreferrer">Histórico</a>{% endif %}
           <a class="btn btn-sm btn-primary" href="{% url 'notificacao_detalhe' n.pk %}">Abrir</a>
         </div>
       </td>

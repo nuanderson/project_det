@@ -3,6 +3,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h4 mb-0">Notificação {{ n.numero_det }}</h1>
   <div>
+    {% if n.link_processo %}<a class="btn btn-outline-isac btn-sm" href="{{ n.link_processo }}" target="_blank" rel="noopener noreferrer">Histórico do processo</a>{% endif %}
     {% if n.anexo %}<a class="btn btn-primary btn-sm" href="{% url 'notificacao_anexo' n.pk %}">Baixar anexo</a>{% endif %}
     {% if not user.is_matriz %}<a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_editar' n.pk %}">Editar</a>{% endif %}
     <a class="btn btn-outline-isac btn-sm" href="{% url 'notificacao_lista' %}">Voltar</a>
@@ -14,17 +15,23 @@
     <div class="card shadow-sm mb-3"><div class="card-header">Dados enviados pela filial</div>
       <dl class="row mb-0 p-3">
         <dt class="col-sm-4">Filial</dt><dd class="col-sm-8">{{ n.filial }}</dd>
+        <dt class="col-sm-4">Tipo</dt><dd class="col-sm-8">{{ n.get_tipo_display }}</dd>
         <dt class="col-sm-4">Assunto</dt><dd class="col-sm-8">{{ n.assunto }}</dd>
         <dt class="col-sm-4">Recebimento</dt><dd class="col-sm-8">{{ n.data_recebimento|date:"d/m/Y" }}</dd>
         <dt class="col-sm-4">Prazo de resposta</dt><dd class="col-sm-8">{{ n.prazo_resposta|date:"d/m/Y"|default:"-" }}</dd>
         <dt class="col-sm-4">Status</dt>
         <dd class="col-sm-8"><span class="badge {% if n.vencida %}text-bg-danger{% elif n.status == 'RESPONDIDA' %}text-bg-success{% else %}text-bg-warning{% endif %}">{{ n.status_exibicao }}</span></dd>
+        {% if n.numero_processo %}<dt class="col-sm-4">Nº do processo</dt><dd class="col-sm-8">{{ n.numero_processo }}</dd>{% endif %}
+        <dt class="col-sm-4">Histórico (e-Processo)</dt>
+        <dd class="col-sm-8">{% if n.link_processo %}<a href="{{ n.link_processo }}" target="_blank" rel="noopener noreferrer">Abrir histórico do processo</a>{% elif n.numero_processo %}<span class="text-muted">Informe o código de acesso (edite a notificação) para liberar o link.</span>{% else %}-{% endif %}</dd>
         <dt class="col-sm-4">Anexo</dt>
         <dd class="col-sm-8">{% if n.anexo %}<a href="{% url 'notificacao_anexo' n.pk %}">Baixar</a>{% else %}<span class="text-danger">Não enviado</span>{% endif %}</dd>
         <dt class="col-sm-4">Observação</dt><dd class="col-sm-8">{{ n.observacao|default:"-"|linebreaksbr }}</dd>
         <dt class="col-sm-4">Registrada por</dt><dd class="col-sm-8">{{ n.criado_por }} em {{ n.criado_em|date:"d/m/Y H:i" }}</dd>
       </dl>
     </div>
+
+    {% include "core/_historico.html" %}
 
     {% if user.is_matriz %}
     <div class="card shadow-sm"><div class="card-header">Alterar status</div><div class="card-body">
